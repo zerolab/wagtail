@@ -37,9 +37,9 @@
 <ul>
 <li> Install <a href="http://www.vagrantup.com/">Vagrant</a>
 </li>
-<li> <code>git clone git@github.com:torchbox/wagtail.git</code>
+<li> <code>git clone git@github.com:torchbox/wagtaildemo.git</code>
 </li>
-<li> <code>cd wagtail</code>
+<li> <code>cd wagtaildemo</code>
 </li>
 <li> <code>vagrant up</code>
 </li>
@@ -54,9 +54,13 @@
 
 <ul>
 <li>Install PostgreSQL, Redis, npm, CoffeeScript, LESS and Elasticsearch. You may find the demo site <a href="https://github.com/torchbox/wagtaildemo/blob/master/etc/install/install.sh">installation script</a> helpful, particularly if you are running Debian or Ubuntu.</li>
-<li><code>git clone git@github.com:torchbox/wagtail.git</code></li>
-<li><code>cd wagtail</code></li>
+<li><code>git clone git@github.com:torchbox/wagtaildemo.git</code></li>
+<li><code>cd wagtaildemo</code></li>
 <li><code>pip install -r requirements.txt</code></li>
+<li><code>createdb wagtaildemo</code></li>
+<li><code>./manage.py syncdb</code></li>
+<li><code>./manage.py migrate</code></li>
+<li><code>./manage.py runserver</code></li>
 </ul>
       </section>
       <footer>
