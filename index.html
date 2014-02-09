@@ -64,6 +64,19 @@
 <li><code>./manage.py syncdb</code></li>
 <li><code>./manage.py migrate</code></li>
 <li><code>./manage.py runserver</code></li>
+</ul><h3>
+<a name="hosted-elasticsearch" class="anchor" href="#hosted-elasticsearch"><span class="octicon octicon-link"></span></a>Hosted Elasticsearch</h3>
+
+<p>Wagtail currently depends on <a href="http://www.elasticsearch.org/">Elasticsearch</a>. If you don't want to run an Elasticsearch server in development or production, there are many hosted services available, including <a href="http://www.searchly.com/">Searchly</a>, who offer a free account suitable for testing and development. To use Searchly:</p>
+
+<ul>
+<li>Sign up for an account at <a href="https://dashboard.searchly.com/users/sign_up">dashboard.searchly.com/users/sign_up</a>
+</li>
+<li>Use your Searchly dashboard to create a new index, e.g. 'wagtaildemo'</li>
+<li>Note the connection URL from your Searchly dashboard</li>
+<li>Update <code>WAGTAILSEARCH_ES_URLS</code> and <code>WAGTAILSEARCH_ES_INDEX</code> in your local settings</li>
+<li>Run <code>./manage.py update_index</code>
+</li>
 </ul>
       </section>
       <footer>
