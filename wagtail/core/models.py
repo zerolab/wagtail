@@ -1799,7 +1799,12 @@ class PagePermissionTester:
         return self.can_delete()
 
     def can_copy(self):
-        return not self.page_is_root
+        can_copy = not self.page_is_root
+
+        if self.page.max_count is not None:
+            can_copy = can_copy and self.page.objects.count() < self.page.max_count
+
+        return can_copy
 
     def can_move_to(self, destination):
         # reject the logically impossible cases first

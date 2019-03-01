@@ -791,6 +791,25 @@ class TestPageCreation(TestCase, WagtailTestUtils):
         response = self.client.get(add_url)
         self.assertEqual(response.status_code, 403)
 
+    def test_cannot_copy_singleton_page_with_max_count(self):
+        # Check that trying to copy a SingletonPageViaMaxCount results in a permission
+        # denied error.
+
+        # SingletonPageViaMaxCount uses the max_count attribute to limit the number of
+        # instance it can have.
+
+        # Create a singleton page
+        self.root_page.add_child(instance=SingletonPageViaMaxCount(
+            title='singleton', slug='singleton'))
+
+        # A second singleton page should not be creatable
+        self.assertFalse(SingletonPageViaMaxCount.can_create_at(self.root_page))
+
+        add_url = reverse('wagtailadmin_pages:add', args=[
+            SingletonPageViaMaxCount._meta.app_label, SingletonPageViaMaxCount._meta.model_name, self.root_page.pk])
+        response = self.client.get(add_url)
+        self.assertEqual(response.status_code, 403)
+
     def test_cannot_create_page_with_wrong_parent_page_types(self):
         # tests.BusinessChild has limited parent_page_types, so attempting to add
         # a new one at the root level should fail with permission denied
@@ -3102,6 +3121,25 @@ class TestPageCopy(TestCase, WagtailTestUtils):
 
         # page should be copied
         self.assertTrue(Page.objects.filter(title="Hello world 2").exists())
+
+    def test_copy_on_singleton_page(self):
+        singleton_page = self.root_page.add_child(instance=SingletonPageViaMaxCount(
+            title='singleton', slug='singleton'))
+
+        response = self.client.get(reverse('wagtailadmin_pages:copy', args=(singleton_page.id,)))
+        self.assertEqual(response.status_code, 403)
+
+        # Get copy page
+        post_data = {
+            'new_title': "Singleton Redux",
+            'new_slug': 'singleton-clone',
+            'new_parent_page': str(self.test_page.id),
+            'copy_subpages': False,
+        }
+        response = self.client.post(reverse('wagtailadmin_pages:copy', args=(singleton_page.id, )), post_data)
+
+        # A user with no page permissions at all should be redirected to the admin home
+        self.assertRedirects(response, reverse('wagtailadmin_home'))
 
 
 class TestPageUnpublish(TestCase, WagtailTestUtils):
