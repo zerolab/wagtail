@@ -1256,7 +1256,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         logger.info("Page moved: \"%s\" id=%d path=%s", self.title, self.id, new_url_path)
 
     def copy(self, recursive=False, to=None, update_attrs=None, copy_revisions=True, keep_live=True, user=None,
-             process_child_object=None, exclude_fields=None):
+             process_child_object=None, exclude_fields=None, after_page_copy=None):
 
         specific_self = self.specific
         if keep_live:
@@ -1277,6 +1277,9 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             base_update_attrs.update(update_attrs)
 
         page_copy, child_object_id_map = self._copy(exclude_fields=exclude_fields, update_attrs=base_update_attrs, to=to, recursive=recursive, process_child_object=process_child_object)
+
+        if after_page_copy and callable(after_page_copy):
+            after_page_copy(specific_self, page_copy, keep_live)
 
         # Copy revisions
         if copy_revisions:
@@ -1343,6 +1346,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                     keep_live=keep_live,
                     user=user,
                     process_child_object=process_child_object,
+                    after_page_copy=after_page_copy
                 )
 
         return page_copy
