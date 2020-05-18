@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.urls import path
 
 from wagtail.admin.views import page_privacy, pages
 
@@ -42,6 +43,8 @@ urlpatterns = [
     url(r'^(\d+)/revisions/(\d+)/revert/$', pages.revisions_revert, name='revisions_revert'),
     url(r'^(\d+)/revisions/(\d+)/unschedule/$', pages.revisions_unschedule, name='revisions_unschedule'),
     url(r'^(\d+)/revisions/compare/(live|earliest|\d+)\.\.\.(live|latest|\d+)/$', pages.revisions_compare, name='revisions_compare'),
+
+    path('<int:page_id>/history/', pages.PageHistoryView.as_view(), name='history'),
 
     url(r'^(\d+)/workflow_history/$', pages.workflow_history, name='workflow_history'),
     url(r'^(\d+)/workflow_history/detail/(\d+)/$', pages.workflow_history_detail, name='workflow_history_detail'),
