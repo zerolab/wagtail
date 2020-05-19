@@ -7,14 +7,11 @@
         <table class="listing">
             <thead>
                 <tr>
-                    <th>
-                        {% trans 'Id' %}
-                    </th>
-                    <th>
-                        {% trans 'Type' %}
-                    </th>
-                    <th>
+                    <th class="title">
                         {% trans 'Title' %}
+                    </th>
+                    <th class="type">
+                        {% trans 'Type' %}
                     </th>
                     <th>
                         {% trans 'Action' %}
@@ -22,7 +19,7 @@
                     <th>
                         {% trans 'User' %}
                     </th>
-                    <th>
+                    <th class="updated">
                         {% trans 'Date / Time' %}
                     </th>
 
@@ -34,20 +31,30 @@
             <tbody>
                 {% for entry in object_list %}
                     <tr>
-                        <td>
-                            <b>{{ entry.id }}</b>
+                        <td class="title">
+                            {% if entry.is_page %}
+                                {% with entry.get_page as page %}
+                                    {% if page %}
+                                        {% page_permissions page as page_perms %}
+                                        {% include "wagtailadmin/pages/listing/_page_title_explore.html" %}
+                                    {% else %}
+                                        {{ entry.object_title }}
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                {{ entry.object_title }}
+                            {% endif %}
                         </td>
-                        <td>
+                        <td class="type">
                             {{ entry.object_verbose_name }}
-                        </td>
-                        <td>
-                            {{ entry.object_title }}
                         </td>
                         <td>
                             {{ entry.message }}
                         </td>
                         <td>{{ entry.user }}</td>
-                        <td>{{ entry.timestamp }}</td>
+                        <td class="updated">
+                            <div class="human-readable-date" title="{{ entry.timestamp|date:"d M Y H:i" }}">{% blocktrans with time_period=entry.timestamp|timesince %}{{ time_period }} ago{% endblocktrans %}</div>
+                        </td>
                         <td>{{ entry.comment }}</td>
                     </tr>
                 {% endfor %}

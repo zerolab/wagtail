@@ -175,6 +175,16 @@ class LogEntry(models.Model):
         return self.content_type.model_class()._meta.verbose_name.title
 
     @cached_property
+    def is_page(self):
+        return issubclass(self.content_type.model_class(), Page)
+
+    def get_page(self):
+        try:
+            return Page.objects.get(pk=self.object_id)
+        except Page.DoesNotExist:
+            return None
+
+    @cached_property
     def comment(self):
         if self.data:
             return self.data.get('comment', '')
