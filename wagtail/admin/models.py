@@ -180,7 +180,6 @@ class LogEntry(models.Model):
             return self.data.get('comment', '')
         return ''
 
-
     @cached_property
     def message(self):
         message = log_action_registry.get_messages().get(self.action, _('Unkown {action}').format(action=self.action))

@@ -3,6 +3,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_filters.widgets import SuffixedMultiWidget
 
+from wagtail.admin import log_action_registry
+from wagtail.admin.models import LogEntry
 from wagtail.admin.widgets import AdminDateInput, BooleanButtonSelect, ButtonSelect, FilteredSelect
 from wagtail.core.models import Page, Task, TaskState, Workflow, WorkflowState
 
@@ -133,3 +135,13 @@ class WorkflowTasksReportFilterSet(WagtailFilterSet):
     class Meta:
         model = TaskState
         fields = ['workflow', 'task', 'status', 'started_at', 'finished_at']
+
+
+class MissionControlReportFilterSet(WagtailFilterSet):
+    action = django_filters.ChoiceFilter(choices=log_action_registry.get_choices)
+    timestamp = django_filters.DateFromToRangeFilter(widget=DateRangePickerWidget)
+    object_title = django_filters.CharFilter(label=_('Title'))
+
+    class Meta:
+        model = LogEntry
+        fields = ['object_title', 'action', 'user', 'timestamp']
