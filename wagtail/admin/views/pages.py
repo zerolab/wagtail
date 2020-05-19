@@ -1713,3 +1713,17 @@ def workflow_history_detail(request, page_id, workflow_state_id):
         'task_states_by_revision': task_states_by_revision,
         'timeline': timeline,
     })
+
+
+@user_passes_test(user_has_any_page_permission)
+def history(request, page_id):
+    page = get_object_or_404(Page, id=page_id).specific
+
+    entries = LogEntry.objects.get_for_instance(page).order_by('-timestamp')
+    paginator = Paginator(entries, per_page=20)
+    entries = paginator.get_page(request.GET.get('p'))
+
+    return render(request, 'wagtailadmin/pages/history/index.html', {
+        'page': page,
+        'entries': entries,
+    })

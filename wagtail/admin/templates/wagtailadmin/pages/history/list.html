@@ -1,0 +1,38 @@
+{% load i18n %}
+<table class="listing">
+    <thead>
+        <tr>
+            <th>
+                {% trans 'Action' %}
+            </th>
+            <th>
+                {% trans 'User' %}
+            </th>
+            <th class="updated">
+                {% trans 'Date / Time' %}
+            </th>
+
+            <th>
+                {% trans 'Comment' %}
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if entries %}
+            {% for entry in entries %}
+                <tr>
+                    <td>
+                        {{ entry.message }}
+                    </td>
+                    <td>{{ entry.user }}</td>
+                    <td class="updated">
+                        <div class="human-readable-date" title="{{ entry.timestamp|date:"d M Y H:i" }}">{% blocktrans with time_period=entry.timestamp|timesince %}{{ time_period }} ago{% endblocktrans %}</div>
+                    </td>
+                    <td>{{ entry.comment }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            {% block no_results %}<tr><td class="no-results-message"><p>{% trans 'This page has no history' %}</p></td></tr>{% endblock %}
+        {% endif %}
+    </tbody>
+</table>
