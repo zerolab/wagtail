@@ -15,6 +15,8 @@ from wagtail.admin.filters import (
     LockedPagesReportFilterSet, WorkflowReportFilterSet, WorkflowTasksReportFilterSet)
 from wagtail.core.models import Page, TaskState, UserPagePermissionsProxy, WorkflowState
 
+from wagtail.admin.models import LogEntry
+
 
 class Echo:
     """An object that implements just the write method of the file-like interface."""
@@ -340,3 +342,28 @@ class WorkflowTasksView(ReportView):
     def get_queryset(self):
         pages = UserPagePermissionsProxy(self.request.user).editable_pages()
         return TaskState.objects.filter(workflow_state__page__in=pages).order_by('-started_at')
+
+
+class LogEntriesView(ReportView):
+    template_name = 'wagtailadmin/reports/mission_control.html'
+    title = _('Mission control')
+    header_icon = 'cogs'
+
+    export_headings = {
+        "object_id": _("ID"),
+        "object_type": _("Type"),
+        "action": _("Action"),
+        "title": _("Title"),
+        "timestamp": _("Date/Time")
+    }
+    list_export = [
+    ]
+
+    def get_filename(self):
+        return "workflow-report-{}".format(
+            datetime.datetime.today().strftime("%Y-%m-%d")
+        )
+
+    def get_queryset(self):
+        # pages = UserPagePermissionsProxy(self.request.user).editable_pages()
+        return LogEntry.objects.order_by('-timestamp')

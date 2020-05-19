@@ -169,3 +169,64 @@ class LogEntry(models.Model):
             return json.loads(self.data_json)
         else:
             return {}
+
+    @cached_property
+    def object_verbose_name(self):
+        return self.content_type.model_class()._meta.verbose_name.title
+
+    @cached_property
+    def comment(self):
+        if self.data:
+            return self.data.get('comment', '')
+        return ''
+
+    @cached_property
+    def get_action_message(self):
+        # TODO: globally registerable actions, label and message formatter
+        messages = {
+            'wagtail.create': _("Created"),
+            'wagtail.edit': _("Updated"),
+            'wagtail.delete': _("Deleted"),
+            'wagtail.publish': _("Published"),
+            'wagtail.unpublish': _("Unpublished"),
+            'wagtail.lock': _("Locked"),
+            'wagtail.unlock': _("Unlocked"),
+            'wagtail.moderation.approve': _("Approved"),
+            'wagtail.moderation.reject': _("Reject"),
+        }
+        if self.action in messages.keys():
+            return messages[self.action]
+        elif self.action == 'wagtail.revert':
+            return _("Reverted to revision {revision_id} from {created_at}").format(
+                revision_id=self.data['revision']['id'],
+                created_at=self.data['revision']['created']
+            )
+        elif self.action == 'wagtail.copy':
+            return _("Copied from {title}").format(title=self.data['source']['title'])
+        elif self.action == 'wagtail.move':
+            return _("Moved from {old_parent} to {new_parent}").format(
+              old_parent=self.data['source']['title'],
+              new_parent=self.data['destination']['title']
+            )
+        elif self.action == 'wagtail.workflow.start':
+            return _("{workflow} started. Next step {task}").format(
+                workflow=self.data['workflow']['title'],
+                task=self.data['workflow']['next'],
+            )
+        elif self.action == 'wagtail.workflow.approve':
+            if self.data['workflow']['next']:
+                return _("Approved at {task}. Next step {next_task}").format(
+                    task=self.data['workflow']['task'],
+                    next_task=self.data['workflow']['next']
+                )
+            else:
+                return _("Approved at {task}. {workflow} complete.").format(
+                    task=self.data['workflow']['task'],
+                    workflow=self.data['workflow']['title']
+                )
+        elif self.action == 'wagtail.workflow.reject':
+            return _("Rejected at '{task}'. Workflow complete").format(
+                task=self.data['workflow']['task'],
+            )
+
+        return _('Unkown')

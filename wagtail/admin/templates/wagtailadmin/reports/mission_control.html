@@ -1,0 +1,63 @@
+{% extends 'wagtailadmin/reports/base_page_report.html' %}
+{% load i18n wagtailadmin_tags %}
+
+
+{% block results %}
+    {% if object_list %}
+        <table class="listing">
+            <thead>
+                <tr>
+                    <th>
+                        {% trans 'Id' %}
+                    </th>
+                    <th>
+                        {% trans 'Type' %}
+                    </th>
+                    <th>
+                        {% trans 'Title' %}
+                    </th>
+                    <th>
+                        {% trans 'Action' %}
+                    </th>
+                    <th>
+                        {% trans 'User' %}
+                    </th>
+                    <th>
+                        {% trans 'Date / Time' %}
+                    </th>
+
+                    <th>
+                        {% trans 'Comment' %}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in object_list %}
+                    <tr>
+                        <td>
+                            <b>{{ entry.id }}</b>
+                        </td>
+                        <td>
+                            {{ entry.object_verbose_name }}
+                        </td>
+                        <td>
+                            {{ entry.object_title }}
+                        </td>
+                        <td>
+                            {{ entry.get_action_message }}
+                        </td>
+                        <td>{{ entry.user }}</td>
+                        <td>{{ entry.timestamp }}</td>
+                        <td>{{ entry.comment }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "No log entries found." %}</p>
+    {% endif %}
+{% endblock %}
+
+{% block no_results %}
+    <p>{% trans "No log entries found." %}</p>
+{% endblock %}
