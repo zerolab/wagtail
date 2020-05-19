@@ -16,10 +16,8 @@ from taggit.models import Tag
 # wagtail admin (namely, base_form_class and get_edit_handler). Importing this within
 # wagtail.admin.models ensures that this happens in advance of running wagtail.admin's
 # system checks.
-from wagtail.admin import edit_handlers  # NOQA
+from wagtail.admin import edit_handlers, log_action_registry  # NOQA
 from wagtail.core.models import Page
-
-from wagtail.core import hooks
 
 
 def get_object_usage(obj):
@@ -182,31 +180,11 @@ class LogEntry(models.Model):
             return self.data.get('comment', '')
         return ''
 
-    @cached_property
-    def registered_log_actions(self):
-        # Import audit log actions
-        log_actions = []
-        for fn in hooks.get_hooks('register_log_actions'):
-            actions = fn()
-            if actions:
-                log_actions += actions
-
-        return log_actions
 
     @cached_property
-    def action_messages(self):
-        return {
-            action: message for action, label, message in self.registered_log_actions
-        }
+    def message(self):
+        message = log_action_registry.get_messages().get(self.action, _('Unkown {action}').format(action=self.action))
+        if callable(message):
+            message = message(self.data)
 
-    @cached_property
-    def action_message(self):
-        action_messages = self.action_messages
-
-        if self.action in action_messages.keys():
-            message = action_messages[self.action]
-            if callable(message):
-                message = message(self.data)
-            return message
-
-        return _('Unkown {action}').format(action=self.action)
+        return message

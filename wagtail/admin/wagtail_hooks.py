@@ -657,23 +657,17 @@ def register_reports_menu():
 
 
 @hooks.register('register_log_actions')
-def register_log_actions():
-    return [
-        # Action, Label, Action message
-        ('wagtail.create', _('Create'), _('Created')),
-        ('wagtail.edit', _('Update'), _('Updated')),
-        ('wagtail.delete', _('Delete'), _('Deleted')),
-        ('wagtail.publish', _('Publish'), _('Published')),
-        ('wagtail.unpublish', _('Unpublish'), _('Unpublished')),
-        ('wagtail.lock', _('Lock'), _('Locked')),
-        ('wagtail.unlock', _('Unlock'), _('Unlocked')),
-        ('wagtail.moderation.approve', _('Approve'), _('Approved')),
-        ('wagtail.moderation.reject', _('Reject'), _('Rejected')),
-    ]
+def register_core_log_actions(actions):
+    actions.register_action('wagtail.create', _('Create'), _('Created'))
+    actions.register_action('wagtail.edit', _('Update'), _('Updated'))
+    actions.register_action('wagtail.delete', _('Delete'), _('Deleted'))
+    actions.register_action('wagtail.publish', _('Publish'), _('Published'))
+    actions.register_action('wagtail.unpublish', _('Unpublish'), _('Unpublished'))
+    actions.register_action('wagtail.lock', _('Lock'), _('Locked'))
+    actions.register_action('wagtail.unlock', _('Unlock'), _('Unlocked'))
+    actions.register_action('wagtail.moderation.approve', _('Approve'), _('Approved'))
+    actions.register_action('wagtail.moderation.reject', _('Reject'), _('Rejected'))
 
-
-@hooks.register('register_log_actions')
-def register_log_actions_with_callable_message():
     def revert_message(data):
         try:
             return format_lazy(
@@ -703,15 +697,13 @@ def register_log_actions_with_callable_message():
         except KeyError:
             return _('Moved')
 
-    return [
-        ('wagtail.revert', _('Revert'), revert_message),
-        ('wagtail.copy', _('Copy'), copy_message),
-        ('wagtail.move', _('Move'), move_message),
-    ]
+    actions.register_action('wagtail.revert', _('Revert'), revert_message)
+    actions.register_action('wagtail.copy', _('Copy'), copy_message)
+    actions.register_action('wagtail.move', _('Move'), move_message)
 
 
 @hooks.register('register_log_actions')
-def register_workflow_log_actions():
+def register_workflow_log_actions(actions):
     def workflow_start_message(data):
         try:
             return format_lazy(
@@ -748,8 +740,6 @@ def register_workflow_log_actions():
         except KeyError:
             return _('Workflow task rejected. Workflow complete')
 
-    return [
-        ('wagtail.workflow.start', _('Workflow: start'), workflow_start_message),
-        ('wagtail.workflow.approve', _('Workflow: approve task'), workflow_approve_message),
-        ('wagtail.workflow.reject', _('Workflow: reject task'), workflow_reject_message),
-    ]
+    actions.register_action('wagtail.workflow.start', _('Workflow: start'), workflow_start_message)
+    actions.register_action('wagtail.workflow.approve', _('Workflow: approve task'), workflow_approve_message)
+    actions.register_action('wagtail.workflow.reject', _('Workflow: reject task'), workflow_reject_message)
