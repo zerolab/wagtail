@@ -247,43 +247,28 @@ def create(request, content_type_app_name, content_type_model_name, parent_page_
             if is_publishing:
                 revision.publish()
 
-                LogEntry.objects.log_action(
-                    instance=page,
-                    action='wagtail.create',
-                    **{
-                        'title': page.get_admin_display_title(),
-                        'revision': revision,
-                        'user': request.user,
-                        'created': True,
-                        'published': is_publishing,
-                        'content_changed': True,
-                    }
-                )
-
             # Submit
             if is_submitting:
                 workflow = page.get_workflow()
                 workflow_state = workflow.start(page, request.user)
 
                 LogEntry.objects.log_action(
-                    page,
-                    'wagtail.workflow.start',
-                    **{
-                        'data': {
-                            'workflow': {
-                                'id': workflow.id,
-                                'title': workflow.name,
-                                'status': workflow_state.status,
-                                'next': workflow_state.current_task_state.task.name \
-                                    if workflow_state.current_task_state else None,
-                            }
-                        },
-                        'revision': revision,
-                        'user': request.user,
-                        'created': True,
-                        'published': is_publishing,
-                        'content_changed': True,
-                    }
+                    instance=page,
+                    action='wagtail.workflow.start',
+                    data={
+                        'workflow': {
+                            'id': workflow.id,
+                            'title': workflow.name,
+                            'status': workflow_state.status,
+                            'next': workflow_state.current_task_state.task.name
+                                if workflow_state.current_task_state else None,
+                        }
+                    },
+                    revision=revision,
+                    user=request.user,
+                    created=True,
+                    published=is_publishing,
+                    content_changed=True,
                 )
 
             # Notifications
@@ -292,12 +277,48 @@ def create(request, content_type_app_name, content_type_model_name, parent_page_
                     messages.success(request, _("Page '{0}' created and scheduled for publishing.").format(page.get_admin_display_title()), buttons=[
                         messages.button(reverse('wagtailadmin_pages:edit', args=(page.id,)), _('Edit'))
                     ])
+
+                    # Log both creation and schedule
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.create',
+                        user=request.user,
+                        revision=revision,
+                        created=True,
+                        published=False,
+                        content_changed=True,
+                    )
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.schedule.publish',
+                        user=request.user,
+                        data={
+                            'revision': {
+                                'id': revision.id,
+                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                            }
+                        },
+                        revision=revision,
+                        created=True,
+                        published=True,
+                        content_changed=True,
+                    )
                 else:
                     buttons = []
                     if page.url is not None:
                         buttons.append(messages.button(page.url, _('View live'), new_window=True))
                     buttons.append(messages.button(reverse('wagtailadmin_pages:edit', args=(page.id,)), _('Edit')))
                     messages.success(request, _("Page '{0}' created and published.").format(page.get_admin_display_title()), buttons=buttons)
+
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.publish',
+                        user=request.user,
+                        revision=revision,
+                        created=True,
+                        published=True,
+                        content_changed=True,
+                    )
             elif is_submitting:
                 messages.success(
                     request,
@@ -316,6 +337,16 @@ def create(request, content_type_app_name, content_type_model_name, parent_page_
                 )
             else:
                 messages.success(request, _("Page '{0}' created.").format(page.get_admin_display_title()))
+
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.create',
+                    user=request.user,
+                    revision=revision,
+                    created=True,
+                    published=False,
+                    content_changed=True,
+                )
 
             for fn in hooks.get_hooks('after_create_page'):
                 result = fn(request, page)
@@ -474,6 +505,7 @@ def edit(request, page_id):
             is_publishing = bool(request.POST.get('action-publish')) and page_perms.can_publish()
             is_submitting = bool(request.POST.get('action-submit')) and page_perms.can_submit_for_moderation()
             is_reverting = bool(request.POST.get('revision'))
+            has_content_changes = form.has_changed()
 
             # If a revision ID was passed in the form, get that revision so its
             # date can be referenced in notification messages
@@ -494,27 +526,6 @@ def edit(request, page_id):
                 # need the up-to-date URL for the "View Live" button.
                 page = page.specific_class.objects.get(pk=page.pk)
 
-                data = ''
-                if is_reverting:
-                    data = {
-                        'revision': {
-                            'id': previous_revision.id,
-                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                        }
-                    }
-
-                LogEntry.objects.log_action(
-                    page,
-                    action='wagtail.edit' if not is_reverting else 'wagtail.revert',
-                    **{
-                        'data': data,
-                        'revision': revision,
-                        'user': request.user,
-                        'published': is_publishing,
-                        'content_changed': form.has_changed(),
-                    }
-                )
-
             # Submit
             if is_submitting:
                 workflow = page.get_workflow()
@@ -523,21 +534,19 @@ def edit(request, page_id):
                 LogEntry.objects.log_action(
                     page,
                     action='wagtail.workflow.start',
-                    **{
-                        'data': {
-                            'workflow': {
-                                'id': workflow.id,
-                                'title': workflow.name,
-                                'status': workflow_state.status,
-                                'next': workflow_state.current_task_state.task.name \
-                                    if workflow_state.current_task_state else None,
-                            }
-                        },
-                        'revision': revision,
-                        'user': request.user,
-                        'published': is_publishing,
-                        'content_changed': form.has_changed(),
-                    }
+                    user=request.user,
+                    data={
+                        'workflow': {
+                            'id': workflow.id,
+                            'title': workflow.name,
+                            'status': workflow_state.status,
+                            'next': workflow_state.current_task_state.task.name \
+                                if workflow_state.current_task_state else None,
+                        }
+                    },
+                    revision=revision,
+                    published=is_publishing,
+                    content_changed=form.has_changed(),
                 )
 
             # Notifications
@@ -552,6 +561,22 @@ def edit(request, page_id):
                             previous_revision.created_at.strftime("%d %b %Y %H:%M"),
                             page.get_admin_display_title()
                         )
+
+                        LogEntry.objects.log_action(
+                            instance=page,
+                            action='wagtail.schedule.revert',
+                            user=request.user,
+                            data={
+                                'revision': {
+                                    'id': previous_revision.id,
+                                    'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
+                                    'go_live_at': go_live_at.strftime("%d %b %Y %H:%M")
+                                }
+                            },
+                            revision=revision,
+                            published=True,
+                            content_changed=has_content_changes,
+                        )
                     else:
                         if page.live:
                             message = _(
@@ -565,6 +590,22 @@ def edit(request, page_id):
                             ).format(
                                 page.get_admin_display_title()
                             )
+
+                        LogEntry.objects.log_action(
+                            instance=page,
+                            action='wagtail.schedule.publish',
+                            data={
+                                'revision': {
+                                    'id': revision.id,
+                                    'go_live_at': go_live_at.strftime("%d %b %Y %H:%M"),
+                                    'has_live_version': page.live,
+                                }
+                            },
+                            user=request.user,
+                            revision=revision,
+                            published=page.live,
+                            content_changed=has_content_changes,
+                        )
 
                     messages.success(request, message, buttons=[
                         messages.button(
@@ -583,11 +624,35 @@ def edit(request, page_id):
                             previous_revision.created_at.strftime("%d %b %Y %H:%M"),
                             page.get_admin_display_title()
                         )
+
+                        LogEntry.objects.log_action(
+                            instance=page,
+                            action='wagtail.revert',
+                            user=request.user,
+                            data={
+                                'revision': {
+                                    'id': previous_revision.id,
+                                    'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                                }
+                            },
+                            revision=revision,
+                            published=True,
+                            content_changed=has_content_changes,
+                        )
                     else:
                         message = _(
                             "Page '{0}' has been published."
                         ).format(
                             page.get_admin_display_title()
+                        )
+
+                        LogEntry.objects.log_action(
+                            instance=page,
+                            action='wagtail.publish',
+                            user=request.user,
+                            revision=revision,
+                            published=True,
+                            content_changed=has_content_changes,
                         )
 
                     buttons = []
@@ -625,11 +690,35 @@ def edit(request, page_id):
                         page.get_admin_display_title(),
                         previous_revision.created_at.strftime("%d %b %Y %H:%M")
                     )
+
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.revert',
+                        user=request.user,
+                        data={
+                            'revision': {
+                                'id': previous_revision.id,
+                                'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                            }
+                        },
+                        revision=revision,
+                        published=False,
+                        content_changed=has_content_changes,
+                    )
                 else:
                     message = _(
                         "Page '{0}' has been updated."
                     ).format(
                         page.get_admin_display_title()
+                    )
+
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.edit',
+                        user=request.user,
+                        revision=revision,
+                        published=False,
+                        content_changed=has_content_changes,
                     )
 
                 messages.success(request, message)

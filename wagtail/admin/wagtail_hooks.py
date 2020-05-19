@@ -659,7 +659,7 @@ def register_reports_menu():
 @hooks.register('register_log_actions')
 def register_core_log_actions(actions):
     actions.register_action('wagtail.create', _('Create'), _('Created'))
-    actions.register_action('wagtail.edit', _('Update'), _('Updated'))
+    actions.register_action('wagtail.edit', _('Save draft'), _('Draft saved'))
     actions.register_action('wagtail.delete', _('Delete'), _('Deleted'))
     actions.register_action('wagtail.publish', _('Publish'), _('Published'))
     actions.register_action('wagtail.unpublish', _('Unpublish'), _('Unpublished'))
@@ -677,6 +677,17 @@ def register_core_log_actions(actions):
             )
         except KeyError:
             return _('Reverted to previous revision')
+
+    def schedule_revert_message(data):
+        try:
+            return format_lazy(
+                _('Scheduled revision {revision_id} from {created_at} for publishing at {go_live_at}.'),
+                revision_id=data['revision']['id'],
+                created_at=data['revision']['created'],
+                go_live_at=data['revision']['go_live_at']
+            )
+        except KeyError:
+            return _('Revision scheduled for publishing')
 
     def copy_message(data):
         try:
@@ -697,9 +708,28 @@ def register_core_log_actions(actions):
         except KeyError:
             return _('Moved')
 
+    def schedule_publish_message(data):
+        try:
+            if data['revision']['has_live_version']:
+                return format_lazy(
+                    _('Scheduled revision {revision_id} from {created_at} for publishing at {go_live_at}.'),
+                    revision_id=data['revision']['id'],
+                    created_at=data['revision']['created'],
+                    go_live_at=data['revision']['go_live_at']
+                )
+            else:
+                return format_lazy(
+                    _('Page scheduled for publishing at {go_live_at}'),
+                    go_live_at=data['revision']['go_live_at']
+                )
+        except KeyError:
+            return _('Page scheduled for publishing')
+
     actions.register_action('wagtail.revert', _('Revert'), revert_message)
+    actions.register_action('wagtail.schedule.revert', _('Schedule revert'), schedule_revert_message)
     actions.register_action('wagtail.copy', _('Copy'), copy_message)
     actions.register_action('wagtail.move', _('Move'), move_message)
+    actions.register_action('wagtail.schedule.publish', _("Schedule publication"), schedule_publish_message)
 
 
 @hooks.register('register_log_actions')
