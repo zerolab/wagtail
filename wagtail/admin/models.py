@@ -17,7 +17,7 @@ from taggit.models import Tag
 # wagtail.admin.models ensures that this happens in advance of running wagtail.admin's
 # system checks.
 from wagtail.admin import edit_handlers, log_action_registry  # NOQA
-from wagtail.core.models import Page
+from wagtail.core.models import Page, get_page_models
 
 
 def get_object_usage(obj):
@@ -110,6 +110,13 @@ class LogEntryManager(models.Manager):
     def get_for_user(self, user_id):
         return self.filter(user=user_id)
 
+    def get_pages(self):
+        content_types = ContentType.objects.get_for_models(*get_page_models()).values()
+        return self.filter(content_type__in=content_types)
+
+    def get_pages_for_user(self, user_id):
+        return self.get_pages().filter(user=user_id)
+
 
 class LogEntry(models.Model):
     content_type = models.ForeignKey(
@@ -197,3 +204,7 @@ class LogEntry(models.Model):
             message = message(self.data)
 
         return message
+
+    @cached_property
+    def action_label(self):
+        return log_action_registry.get_actions()[self.action][0]

@@ -354,19 +354,29 @@ class LogEntriesView(ReportView):
 
     export_headings = {
         "object_id": _("ID"),
-        "object_type": _("Type"),
-        "action": _("Action"),
         "title": _("Title"),
+        "object_verbose_name": _("Type"),
+        "action_label": _("Action type"),
+        "message": _("Action"),
         "timestamp": _("Date/Time")
     }
     list_export = [
+        "object_id",
+        "object_title",
+        "object_verbose_name",
+        "action_label",
+        "message",
+        "timestamp"
     ]
 
     def get_filename(self):
-        return "workflow-report-{}".format(
+        return "audit-log-{}".format(
             datetime.datetime.today().strftime("%Y-%m-%d")
         )
 
     def get_queryset(self):
-        # pages = UserPagePermissionsProxy(self.request.user).editable_pages()
-        return LogEntry.objects.order_by('-timestamp')
+        explorable_pages = [
+            str(pk)
+            for pk in UserPagePermissionsProxy(self.request.user).explorable_pages().values_list('pk', flat=True)
+        ]
+        return LogEntry.objects.get_pages().filter(object_id__in=explorable_pages).order_by('-timestamp')
