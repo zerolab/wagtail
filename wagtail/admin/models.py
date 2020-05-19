@@ -19,6 +19,8 @@ from taggit.models import Tag
 from wagtail.admin import edit_handlers  # NOQA
 from wagtail.core.models import Page
 
+from wagtail.core import hooks
+
 
 def get_object_usage(obj):
     """Returns a queryset of pages that link to a particular object"""
@@ -181,52 +183,30 @@ class LogEntry(models.Model):
         return ''
 
     @cached_property
-    def get_action_message(self):
-        # TODO: globally registerable actions, label and message formatter
-        messages = {
-            'wagtail.create': _("Created"),
-            'wagtail.edit': _("Updated"),
-            'wagtail.delete': _("Deleted"),
-            'wagtail.publish': _("Published"),
-            'wagtail.unpublish': _("Unpublished"),
-            'wagtail.lock': _("Locked"),
-            'wagtail.unlock': _("Unlocked"),
-            'wagtail.moderation.approve': _("Approved"),
-            'wagtail.moderation.reject': _("Reject"),
-        }
-        if self.action in messages.keys():
-            return messages[self.action]
-        elif self.action == 'wagtail.revert':
-            return _("Reverted to revision {revision_id} from {created_at}").format(
-                revision_id=self.data['revision']['id'],
-                created_at=self.data['revision']['created']
-            )
-        elif self.action == 'wagtail.copy':
-            return _("Copied from {title}").format(title=self.data['source']['title'])
-        elif self.action == 'wagtail.move':
-            return _("Moved from {old_parent} to {new_parent}").format(
-              old_parent=self.data['source']['title'],
-              new_parent=self.data['destination']['title']
-            )
-        elif self.action == 'wagtail.workflow.start':
-            return _("{workflow} started. Next step {task}").format(
-                workflow=self.data['workflow']['title'],
-                task=self.data['workflow']['next'],
-            )
-        elif self.action == 'wagtail.workflow.approve':
-            if self.data['workflow']['next']:
-                return _("Approved at {task}. Next step {next_task}").format(
-                    task=self.data['workflow']['task'],
-                    next_task=self.data['workflow']['next']
-                )
-            else:
-                return _("Approved at {task}. {workflow} complete.").format(
-                    task=self.data['workflow']['task'],
-                    workflow=self.data['workflow']['title']
-                )
-        elif self.action == 'wagtail.workflow.reject':
-            return _("Rejected at '{task}'. Workflow complete").format(
-                task=self.data['workflow']['task'],
-            )
+    def registered_log_actions(self):
+        # Import audit log actions
+        log_actions = []
+        for fn in hooks.get_hooks('register_log_actions'):
+            actions = fn()
+            if actions:
+                log_actions += actions
 
-        return _('Unkown')
+        return log_actions
+
+    @cached_property
+    def action_messages(self):
+        return {
+            action: message for action, label, message in self.registered_log_actions
+        }
+
+    @cached_property
+    def action_message(self):
+        action_messages = self.action_messages
+
+        if self.action in action_messages.keys():
+            message = action_messages[self.action]
+            if callable(message):
+                message = message(self.data)
+            return message
+
+        return _('Unkown {action}').format(action=self.action)

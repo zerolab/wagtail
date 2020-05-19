@@ -1,5 +1,6 @@
 from django.contrib.auth.models import Permission
 from django.urls import reverse
+from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import gettext
 from draftjs_exporter.dom import DOM
@@ -653,3 +654,102 @@ def register_mission_control_report_menu_item():
 def register_reports_menu():
     return ReportsMenuItem(
         _('Reports'), reports_menu, classnames='icon icon-site', order=9000)
+
+
+@hooks.register('register_log_actions')
+def register_log_actions():
+    return [
+        # Action, Label, Action message
+        ('wagtail.create', _('Create'), _('Created')),
+        ('wagtail.edit', _('Update'), _('Updated')),
+        ('wagtail.delete', _('Delete'), _('Deleted')),
+        ('wagtail.publish', _('Publish'), _('Published')),
+        ('wagtail.unpublish', _('Unpublish'), _('Unpublished')),
+        ('wagtail.lock', _('Lock'), _('Locked')),
+        ('wagtail.unlock', _('Unlock'), _('Unlocked')),
+        ('wagtail.moderation.approve', _('Approve'), _('Approved')),
+        ('wagtail.moderation.reject', _('Reject'), _('Rejected')),
+    ]
+
+
+@hooks.register('register_log_actions')
+def register_log_actions_with_callable_message():
+    def revert_message(data):
+        try:
+            return format_lazy(
+                _('Reverted to previous revision with id {revision_id} from {created_at}'),
+                revision_id=data['revision']['id'],
+                created_at=data['revision']['created']
+            )
+        except KeyError:
+            return _('Reverted to previous revision')
+
+    def copy_message(data):
+        try:
+            return format_lazy(
+                _('Copied from {title}'),
+                title=data['source']['title']
+            )
+        except KeyError:
+            return _("Copied")
+
+    def move_message(data):
+        try:
+            return format_lazy(
+                _('Moved from {old_parent} to {new_parent}'),
+                old_parent=data['source']['title'],
+                new_parent=data['destination']['title']
+            )
+        except KeyError:
+            return _('Moved')
+
+    return [
+        ('wagtail.revert', _('Revert'), revert_message),
+        ('wagtail.copy', _('Copy'), copy_message),
+        ('wagtail.move', _('Move'), move_message),
+    ]
+
+
+@hooks.register('register_log_actions')
+def register_workflow_log_actions():
+    def workflow_start_message(data):
+        try:
+            return format_lazy(
+                _("'{workflow}' started. Next step '{task}'"),
+                workflow=data['workflow']['title'],
+                task=data['workflow']['next'],
+            )
+        except KeyError:
+            return _('Workflow started')
+
+    def workflow_approve_message(data):
+        try:
+            if data['workflow']['next']:
+                return format_lazy(
+                    _("Approved at '{task}'. Next step '{next_task}'"),
+                    task=data['workflow']['task'],
+                    next_task=data['workflow']['next']
+                )
+            else:
+                return format_lazy(
+                    _("Approved at '{task}'. '{workflow}' complete"),
+                    task=data['workflow']['task'],
+                    workflow=data['workflow']['title']
+                )
+        except KeyError:
+            return _('Workflow task approved')
+
+    def workflow_reject_message(data):
+        try:
+            return format_lazy(
+                _("Rejected at '{task}'. Workflow complete"),
+                task=data['workflow']['task'],
+            )
+        except KeyError:
+            return _('Workflow task rejected. Workflow complete')
+
+    return [
+        ('wagtail.workflow.start', _('Workflow: start'), workflow_start_message),
+        ('wagtail.workflow.approve', _('Workflow: approve task'), workflow_approve_message),
+        ('wagtail.workflow.reject', _('Workflow: reject task'), workflow_reject_message),
+    ]
