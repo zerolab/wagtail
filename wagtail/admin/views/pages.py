@@ -27,11 +27,11 @@ from wagtail.admin.auth import user_has_any_page_permission, user_passes_test
 from wagtail.admin.forms.pages import CopyForm
 from wagtail.admin.forms.search import SearchForm
 from wagtail.admin.mail import send_notification
-from wagtail.admin.models import LogEntry
 from wagtail.admin.navigation import get_explorable_root_page
 from wagtail.core import hooks
 from wagtail.core.models import (
-    Page, PageRevision, Task, TaskState, UserPagePermissionsProxy, WorkflowState)
+    LogEntry, Page, PageRevision, Task, TaskState, UserPagePermissionsProxy, WorkflowState
+)
 from wagtail.search.query import MATCH_ALL
 
 

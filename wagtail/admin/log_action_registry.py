@@ -1,3 +1,5 @@
+from django.utils.translation import gettext_lazy as _
+
 from wagtail.core import hooks
 
 
@@ -43,3 +45,13 @@ class LogActionRegistry:
     def get_messages(self):
         self.scan_for_actions()
         return self.messages
+
+    def format_message(self, log_entry):
+        message = self.get_messages().get(log_entry.action, _('Unkown {action}').format(action=log_entry.action))
+        if callable(message):
+            message = message(log_entry.data)
+
+        return message
+
+    def get_action_label(self, action):
+        return self.get_actions()[action][0]

@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n wagtailadmin_tags %}
 <table class="listing">
     <thead>
         <tr>
@@ -22,7 +22,7 @@
             {% for entry in entries %}
                 <tr>
                     <td>
-                        {{ entry.message }}
+                        {{ entry|format_action_log_message }}
                     </td>
                     <td>{{ entry.user }}</td>
                     <td class="updated">

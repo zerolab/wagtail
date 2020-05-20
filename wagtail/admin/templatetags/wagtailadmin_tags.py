@@ -15,6 +15,7 @@ from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from wagtail.admin import log_action_registry
 from wagtail.admin.localization import get_js_translation_strings
 from wagtail.admin.menu import admin_menu
 from wagtail.admin.navigation import get_explorable_root_page
@@ -22,10 +23,11 @@ from wagtail.admin.search import admin_search_areas
 from wagtail.admin.staticfiles import versioned_static as versioned_static_func
 from wagtail.core import hooks
 from wagtail.core.models import (
-    CollectionViewRestriction, Page, PageViewRestriction, UserPagePermissionsProxy)
+    CollectionViewRestriction, LogEntry, Page, PageViewRestriction, UserPagePermissionsProxy)
 from wagtail.core.utils import cautious_slugify as _cautious_slugify
 from wagtail.core.utils import camelcase_to_underscore, escape_script
 from wagtail.users.utils import get_gravatar_url
+
 
 register = template.Library()
 
@@ -501,3 +503,10 @@ def versioned_static(path):
     that updates on each Wagtail version
     """
     return versioned_static_func(path)
+
+
+@register.filter
+def format_action_log_message(log_entry):
+    if not isinstance(log_entry, LogEntry):
+        return ''
+    return log_action_registry.format_message(log_entry)

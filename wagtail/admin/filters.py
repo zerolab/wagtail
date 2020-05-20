@@ -4,9 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from django_filters.widgets import SuffixedMultiWidget
 
 from wagtail.admin import log_action_registry
-from wagtail.admin.models import LogEntry
 from wagtail.admin.widgets import AdminDateInput, BooleanButtonSelect, ButtonSelect, FilteredSelect
-from wagtail.core.models import Page, Task, TaskState, Workflow, WorkflowState
+from wagtail.core.models import LogEntry, Page, Task, TaskState, Workflow, WorkflowState
 
 
 class DateRangePickerWidget(SuffixedMultiWidget):

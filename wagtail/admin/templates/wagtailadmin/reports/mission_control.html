@@ -49,7 +49,7 @@
                             {{ entry.object_verbose_name }}
                         </td>
                         <td>
-                            {{ entry.message }}
+                            {{ entry|format_action_log_message }}
                         </td>
                         <td>{{ entry.user }}</td>
                         <td class="updated">

@@ -16,9 +16,7 @@ from wagtail.admin.filters import (
     LockedPagesReportFilterSet, MissionControlReportFilterSet,
     WorkflowReportFilterSet, WorkflowTasksReportFilterSet
 )
-from wagtail.core.models import Page, TaskState, UserPagePermissionsProxy, WorkflowState, Site
-
-from wagtail.admin.models import LogEntry
+from wagtail.core.models import LogEntry, Page, TaskState, UserPagePermissionsProxy, WorkflowState, Site
 
 
 class Echo:
@@ -357,18 +355,23 @@ class LogEntriesView(ReportView):
         "object_id": _("ID"),
         "title": _("Title"),
         "object_verbose_name": _("Type"),
-        "action_label": _("Action type"),
-        "message": _("Action"),
+        "action": _("Action type"),
         "timestamp": _("Date/Time")
     }
     list_export = [
         "object_id",
         "object_title",
         "object_verbose_name",
-        "action_label",
-        "message",
+        "action",
         "timestamp"
     ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.custom_field_preprocess['action'] = {
+           self.FORMAT_CSV: self.get_action_label, self.FORMAT_XLSX: self.get_action_label
+        }
 
     def get_filename(self):
         return "audit-log-{}".format(
@@ -394,3 +397,7 @@ class LogEntriesView(ReportView):
             ))
 
         return LogEntry.objects.get_pages().filter(q).order_by('-timestamp')
+
+    def get_action_label(self, action):
+        from wagtail.admin import log_action_registry
+        return force_str(log_action_registry.get_action_label(action))
