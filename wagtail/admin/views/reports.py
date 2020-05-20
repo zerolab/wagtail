@@ -3,6 +3,7 @@ import datetime
 from collections import OrderedDict
 
 from django.core.exceptions import FieldDoesNotExist
+from django.db.models import Q, Subquery
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
@@ -15,7 +16,7 @@ from wagtail.admin.filters import (
     LockedPagesReportFilterSet, MissionControlReportFilterSet,
     WorkflowReportFilterSet, WorkflowTasksReportFilterSet
 )
-from wagtail.core.models import Page, TaskState, UserPagePermissionsProxy, WorkflowState
+from wagtail.core.models import Page, TaskState, UserPagePermissionsProxy, WorkflowState, Site
 
 from wagtail.admin.models import LogEntry
 
@@ -379,4 +380,17 @@ class LogEntriesView(ReportView):
             str(pk)
             for pk in UserPagePermissionsProxy(self.request.user).explorable_pages().values_list('pk', flat=True)
         ]
-        return LogEntry.objects.get_pages().filter(object_id__in=explorable_pages).order_by('-timestamp')
+
+        q = Q(object_id__in=explorable_pages)
+        root_page_permissions = Site.find_for_request(self.request).root_page.permissions_for_user(self.request.user)
+        if (
+            self.request.user.is_superuser or
+            root_page_permissions.can_add_subpage() or
+            root_page_permissions.can_edit()
+        ):
+            # Include deleted entries
+            q = q | Q(object_id__in=Subquery(
+                LogEntry.objects.filter(deleted=True).values('object_id')
+            ))
+
+        return LogEntry.objects.get_pages().filter(q).order_by('-timestamp')
