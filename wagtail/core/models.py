@@ -1846,7 +1846,7 @@ class PageRevision(models.Model):
     objects = models.Manager()
     submitted_revisions = SubmittedRevisionsManager()
 
-    def save(self, *args, **kwargs):
+    def save(self, user=None, *args, **kwargs):
         # Set default value for created_at to now
         # We cannot use auto_now_add as that will override
         # any value that is set before saving
@@ -1857,6 +1857,24 @@ class PageRevision(models.Model):
         if self.submitted_for_moderation:
             # ensure that all other revisions of this page have the 'submitted for moderation' flag unset
             self.page.revisions.exclude(id=self.id).update(submitted_for_moderation=False)
+
+        if 'update_fields' in kwargs and \
+            'approved_go_live_at' in kwargs['update_fields'] and self.approved_go_live_at is None:
+            # Log scheduled revision publish cancellation
+            page = self.as_page_object()
+            LogEntry.objects.log_action(
+                instance=page,
+                action='wagtail.schedule.cancel',
+                data={
+                    'revision': {
+                        'id': self.id,
+                        'created': self.created_at.strftime("%d %b %Y %H:%M"),
+                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                    }
+                },
+                user=user,
+                revision=self,
+            )
 
     def as_page_object(self):
         return self.page.specific.with_content_json(self.content_json)
@@ -1918,6 +1936,7 @@ class PageRevision(models.Model):
                         data={
                             'revision': {
                                 'id': self.id,
+                                'created': self.created_at.strftime("%d %b %Y %H:%M"),
                                 'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
                                 'has_live_version': page.live,
                             }

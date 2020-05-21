@@ -712,7 +712,7 @@ def register_core_log_actions(actions):
         try:
             if data['revision']['has_live_version']:
                 return format_lazy(
-                    _('Scheduled revision {revision_id} from {created_at} for publishing at {go_live_at}.'),
+                    _('Revision {revision_id} from {created_at} scheduled for publishing at {go_live_at}.'),
                     revision_id=data['revision']['id'],
                     created_at=data['revision']['created'],
                     go_live_at=data['revision']['go_live_at']
@@ -725,11 +725,29 @@ def register_core_log_actions(actions):
         except KeyError:
             return _('Page scheduled for publishing')
 
+    def unschedule_publish_message(data):
+        try:
+            if data['revision']['has_live_version']:
+                return format_lazy(
+                    _('Revision {revision_id} from {created_at} unscheduled from publishing at {go_live_at}.'),
+                    revision_id=data['revision']['id'],
+                    created_at=data['revision']['created'],
+                    go_live_at=data['revision']['go_live_at']
+                )
+            else:
+                return format_lazy(
+                    _('Page unscheduled for publishing at {go_live_at}'),
+                    go_live_at=data['revision']['go_live_at']
+                )
+        except KeyError:
+            return _('Page unscheduled from publishing')
+
     actions.register_action('wagtail.revert', _('Revert'), revert_message)
     actions.register_action('wagtail.schedule.revert', _('Schedule revert'), schedule_revert_message)
     actions.register_action('wagtail.copy', _('Copy'), copy_message)
     actions.register_action('wagtail.move', _('Move'), move_message)
     actions.register_action('wagtail.schedule.publish', _("Schedule publication"), schedule_publish_message)
+    actions.register_action('wagtail.schedule.cancel', _("Unschedule publication"), unschedule_publish_message)
 
 
 @hooks.register('register_log_actions')

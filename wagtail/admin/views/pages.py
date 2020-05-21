@@ -1448,7 +1448,7 @@ def revisions_unschedule(request, page_id, revision_id):
 
     if request.method == 'POST':
         revision.approved_go_live_at = None
-        revision.save(update_fields=['approved_go_live_at'])
+        revision.save(user=request.user, update_fields=['approved_go_live_at'])
 
         messages.success(request, _('Revision {0} of "{1}" unscheduled.').format(revision.id, page.get_admin_display_title()), buttons=[
             messages.button(reverse('wagtailadmin_pages:edit', args=(page.id,)), _('Edit'))
