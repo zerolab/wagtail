@@ -1876,6 +1876,23 @@ class PageRevision(models.Model):
             page.revisions.exclude(id=self.id).update(approved_go_live_at=None)
             # if we are updating a currently live page skip the rest
             if page.live_revision:
+                # Log scheduled publishing
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.schedule.publish',
+                    data={
+                        'revision': {
+                            'id': self.id,
+                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                            'has_live_version': page.live,
+                        }
+                    },
+                    user=user,
+                    revision=self,
+                    published=page.live,
+                    content_changed=changed,
+                )
+
                 return
             # if we have a go_live in the future don't make the page live
             page.live = False
