@@ -2,7 +2,7 @@
 {% load i18n wagtailadmin_tags wagtailui_tags %}
 {% load l10n %}
 
-{% block titletag %}{% blocktrans with title=page.get_admin_display_title %}Revisions of {{ title }}{% endblocktrans %}{% endblock %}
+{% block titletag %}{% blocktrans with title=page.get_admin_display_title %}Page history for {{ title }}{% endblocktrans %}{% endblock %}
 
 {% block content %}
     {% trans "Page history" as history_str %}
