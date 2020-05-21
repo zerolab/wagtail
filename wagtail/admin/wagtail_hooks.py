@@ -202,6 +202,14 @@ def page_listing_more_buttons(page, page_perms, is_parent=False):
             priority=50
         )
 
+    if page_perms.can_view_revisions():
+        yield Button(
+            _('History'),
+            reverse('wagtailadmin_pages:history', args=[page.id]),
+            attrs={'title': _("View page history for '%(title)s'") % {'title': page.get_admin_display_title()}},
+            priority=50
+        )
+
 
 @hooks.register('register_admin_urls')
 def register_viewsets_urls():
