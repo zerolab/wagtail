@@ -709,7 +709,7 @@ def register_core_log_actions(actions):
     def move_message(data):
         try:
             return format_lazy(
-                _('Moved from {old_parent} to {new_parent}'),
+                _("Moved from '{old_parent}' to '{new_parent}'"),
                 old_parent=data['source']['title'],
                 new_parent=data['destination']['title']
             )

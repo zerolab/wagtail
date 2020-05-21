@@ -1319,6 +1319,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         Extension to the treebeard 'move' method to ensure that url_path is updated too.
         """
         old_url_path = Page.objects.get(id=self.id).url_path
+        old_parent = self.get_parent()
         super().move(target, pos=pos)
         # treebeard's move method doesn't actually update the in-memory instance, so we need to work
         # with a freshly loaded one now
@@ -1334,8 +1335,8 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             user=user,
             data={
                 'source': {
-                    'id': self.id,
-                    'title': self.get_admin_display_title()
+                    'id': old_parent.id,
+                    'title': old_parent.get_admin_display_title()
                 },
                 'destination': {
                     'id': target.id,
