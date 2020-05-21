@@ -1,6 +1,7 @@
 import json
 import logging
 from collections import defaultdict
+
 from io import StringIO
 from urllib.parse import urlparse
 
@@ -20,6 +21,7 @@ from django.http import Http404
 from django.template.response import TemplateResponse
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
+from django.utils.encoding import force_str
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 from django.utils.text import capfirst, slugify
@@ -2562,6 +2564,49 @@ class BaseViewRestriction(models.Model):
         verbose_name = _('view restriction')
         verbose_name_plural = _('view restrictions')
 
+    def save(self, user=None, specific_instance=None, **kwargs):
+        """
+        Custom save handle to in in logging.
+        :param user: the user add/updating the view restriction
+        :param specific_instance: the specific model instance the restriction applies to
+        """
+        is_new = self.id is None
+        super().save(**kwargs)
+
+        if specific_instance:
+            LogEntry.objects.log_action(
+                instance=specific_instance,
+                action='wagtail.view_restriction.create' if is_new else 'wagtail.view_restriction.edit',
+                user=user,
+                data={
+                    'restriction': {
+                        'type': self.restriction_type,
+                        'title': force_str(dict(self.RESTRICTION_CHOICES).get(self.restriction_type))
+                    }
+                }
+            )
+
+    def delete(self, user=None, specific_instance=None, **kwargs):
+        """
+        Custom delete handler to aid in logging
+        :param user: the user removing the view restriction
+        :param specific_instance: the specific model instance the restriction applies to
+        """
+        super().delete(**kwargs)
+
+        if specific_instance:
+            LogEntry.objects.log_action(
+                instance=specific_instance,
+                action='wagtail.view_restriction.remove',
+                user=user,
+                data={
+                    'restriction': {
+                        'type': self.restriction_type,
+                        'title': force_str(dict(self.RESTRICTION_CHOICES).get(self.restriction_type))
+                    }
+                }
+            )
+
 
 class PageViewRestriction(BaseViewRestriction):
     page = models.ForeignKey(
@@ -2573,6 +2618,15 @@ class PageViewRestriction(BaseViewRestriction):
     class Meta:
         verbose_name = _('page view restriction')
         verbose_name_plural = _('page view restrictions')
+
+    def save(self, user=None, **kwargs):
+        if hasattr(self, 'user'):
+            user = self.user
+            del self.user
+        return super().save(user, specific_instance=self.page.specific, **kwargs)
+
+    def delete(self, user=None, **kwargs):
+        return super().save(user, specific_instance=self.page.specific, **kwargs)
 
 
 class BaseCollectionManager(models.Manager):

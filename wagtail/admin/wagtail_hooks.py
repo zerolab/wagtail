@@ -742,12 +742,42 @@ def register_core_log_actions(actions):
         except KeyError:
             return _('Page unscheduled from publishing')
 
+    def add_view_restriction(data):
+        try:
+            return format_lazy(
+                _("Added the '{restriction}' view restriction"),
+                restriction=data['restriction']['title']
+            )
+        except KeyError:
+            return _('Added view restriction')
+
+    def edit_view_restriction(data):
+        try:
+            return format_lazy(
+                _("Updated the view restriction to '{restriction}'"),
+                restriction=data['restriction']['title']
+            )
+        except KeyError:
+            return _('Updated view restriction')
+
+    def delete_view_restriction(data):
+        try:
+            return format_lazy(
+                _("Removed the view restriction to '{restriction}'"),
+                restriction=data['restriction']['title']
+            )
+        except KeyError:
+            return _('Removed view restriction')
+
     actions.register_action('wagtail.revert', _('Revert'), revert_message)
     actions.register_action('wagtail.schedule.revert', _('Schedule revert'), schedule_revert_message)
     actions.register_action('wagtail.copy', _('Copy'), copy_message)
     actions.register_action('wagtail.move', _('Move'), move_message)
     actions.register_action('wagtail.schedule.publish', _("Schedule publication"), schedule_publish_message)
     actions.register_action('wagtail.schedule.cancel', _("Unschedule publication"), unschedule_publish_message)
+    actions.register_action('wagtail.view_restriction.create', _("Add view restrictions"), add_view_restriction)
+    actions.register_action('wagtail.view_restriction.edit', _("Update view restrictions"), edit_view_restriction)
+    actions.register_action('wagtail.view_restriction.delete', _("Remove view restrictions"), delete_view_restriction)
 
 
 @hooks.register('register_log_actions')
