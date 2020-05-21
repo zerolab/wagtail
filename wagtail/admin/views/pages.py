@@ -478,14 +478,19 @@ def edit(request, page_id):
             # Save revision
             revision = page.save_revision(
                 user=request.user,
-                log_action=not (is_publishing or is_submitting)
+                log_action=not (is_publishing or is_submitting),
+                previous_revision=(previous_revision if is_reverting else None)
             )
             # store submitted go_live_at for messaging below
             go_live_at = page.go_live_at
 
             # Publish
             if is_publishing:
-                revision.publish(user=request.user, changed=has_content_changes)
+                revision.publish(
+                    user=request.user,
+                    changed=has_content_changes,
+                    previous_revision=(previous_revision if is_reverting else None)
+                )
                 # Need to reload the page because the URL may have changed, and we
                 # need the up-to-date URL for the "View Live" button.
                 page = page.specific_class.objects.get(pk=page.pk)
@@ -506,22 +511,6 @@ def edit(request, page_id):
                         ).format(
                             previous_revision.created_at.strftime("%d %b %Y %H:%M"),
                             page.get_admin_display_title()
-                        )
-
-                        LogEntry.objects.log_action(
-                            instance=page,
-                            action='wagtail.schedule.revert',
-                            user=request.user,
-                            data={
-                                'revision': {
-                                    'id': previous_revision.id,
-                                    'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
-                                    'go_live_at': go_live_at.strftime("%d %b %Y %H:%M")
-                                }
-                            },
-                            revision=revision,
-                            published=True,
-                            content_changed=has_content_changes,
                         )
                     else:
                         if page.live:
@@ -555,20 +544,6 @@ def edit(request, page_id):
                             page.get_admin_display_title()
                         )
 
-                        LogEntry.objects.log_action(
-                            instance=page,
-                            action='wagtail.revert',
-                            user=request.user,
-                            data={
-                                'revision': {
-                                    'id': previous_revision.id,
-                                    'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                                }
-                            },
-                            revision=revision,
-                            published=True,
-                            content_changed=has_content_changes,
-                        )
                     else:
                         message = _(
                             "Page '{0}' has been published."
@@ -610,21 +585,6 @@ def edit(request, page_id):
                     ).format(
                         page.get_admin_display_title(),
                         previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                    )
-
-                    LogEntry.objects.log_action(
-                        instance=page,
-                        action='wagtail.revert',
-                        user=request.user,
-                        data={
-                            'revision': {
-                                'id': previous_revision.id,
-                                'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                            }
-                        },
-                        revision=revision,
-                        published=False,
-                        content_changed=has_content_changes,
                     )
                 else:
                     message = _(

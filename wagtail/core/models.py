@@ -848,7 +848,18 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         # in a fixture or migration that didn't explicitly handle draft_title)
         return self.draft_title or self.title
 
-    def save_revision(self, user=None, submitted_for_moderation=False, approved_go_live_at=None, changed=True, log_action=False):
+    def save_revision(self, user=None, submitted_for_moderation=False, approved_go_live_at=None, changed=True,
+                      log_action=False, previous_revision=None):
+        """
+        Creates and saves a page revision.
+        :param user: the user performing the action
+        :param submitted_for_moderation: indicates whether the page was submitted for moderation
+        :param approved_go_live_at: the date and time the revision is approved to go live
+        :param changed: indicates whether there were any content changes
+        :param log_action: flag to log action
+        :param previous_revision: indicates a revision reversal. Should be set to the previous revision instance
+        :return: the newly created revision
+        """
         self.full_clean()
 
         # Create revision
@@ -877,14 +888,31 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         # Log
         logger.info("Page edited: \"%s\" id=%d revision_id=%d", self.title, self.id, revision.id)
         if log_action:
-            LogEntry.objects.log_action(
-                instance=self,
-                action='wagtail.edit',
-                user=user,
-                revision=revision,
-                published=False,
-                content_changed=changed,
-            )
+
+            if not previous_revision:
+                LogEntry.objects.log_action(
+                    instance=self,
+                    action='wagtail.edit',
+                    user=user,
+                    revision=revision,
+                    published=False,
+                    content_changed=changed,
+                )
+            else:
+                LogEntry.objects.log_action(
+                    instance=self,
+                    action='wagtail.revert',
+                    user=user,
+                    data={
+                        'revision': {
+                            'id': previous_revision.id,
+                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                        }
+                    },
+                    revision=revision,
+                    published=False,
+                    content_changed=changed,
+                )
 
         if submitted_for_moderation:
             logger.info("Page submitted for moderation: \"%s\" id=%d revision_id=%d", self.title, self.id, revision.id)
@@ -1865,7 +1893,13 @@ class PageRevision(models.Model):
         latest_revision = PageRevision.objects.filter(page_id=self.page_id).order_by('-created_at', '-id').first()
         return (latest_revision == self)
 
-    def publish(self, user=None, changed=True):
+    def publish(self, user=None, changed=True, previous_revision=None):
+        """
+        Publishes or schedules revision for publishing.
+        :param user: the publishing user
+        :param changed: indicated whether content has changed
+        :param previous_revision: indicates a revision reversal. Should be set to the previous revision instance
+        """
         page = self.as_page_object()
         if page.go_live_at and page.go_live_at > timezone.now():
             page.has_unpublished_changes = True
@@ -1877,21 +1911,38 @@ class PageRevision(models.Model):
             # if we are updating a currently live page skip the rest
             if page.live_revision:
                 # Log scheduled publishing
-                LogEntry.objects.log_action(
-                    instance=page,
-                    action='wagtail.schedule.publish',
-                    data={
-                        'revision': {
-                            'id': self.id,
-                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
-                            'has_live_version': page.live,
-                        }
-                    },
-                    user=user,
-                    revision=self,
-                    published=page.live,
-                    content_changed=changed,
-                )
+                if not previous_revision:
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.schedule.publish',
+                        data={
+                            'revision': {
+                                'id': self.id,
+                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                                'has_live_version': page.live,
+                            }
+                        },
+                        user=user,
+                        revision=self,
+                        published=page.live,
+                        content_changed=changed,
+                    )
+                else:
+                    LogEntry.objects.log_action(
+                        instance=page,
+                        action='wagtail.schedule.revert',
+                        user=user,
+                        data={
+                            'revision': {
+                                'id': previous_revision.id,
+                                'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
+                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M")
+                            }
+                        },
+                        revision=self,
+                        published=page.live,
+                        content_changed=changed,
+                    )
 
                 return
             # if we have a go_live in the future don't make the page live
@@ -1924,15 +1975,31 @@ class PageRevision(models.Model):
         if page.live:
             page_published.send(sender=page.specific_class, instance=page.specific, revision=self)
 
-            LogEntry.objects.log_action(
-                instance=page,
-                action='wagtail.publish',
-                user=user,
-                revision=self,
-                created=True,
-                published=True,
-                content_changed=changed,
-            )
+            if not previous_revision:
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.publish',
+                    user=user,
+                    revision=self,
+                    created=True,
+                    published=True,
+                    content_changed=changed,
+                )
+            else:
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.revert',
+                    user=user,
+                    data={
+                        'revision': {
+                            'id': previous_revision.id,
+                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                        }
+                    },
+                    revision=self,
+                    published=True,
+                    content_changed=changed,
+                )
 
             logger.info("Page published: \"%s\" id=%d revision_id=%d", page.title, page.id, self.id)
         elif page.go_live_at:
@@ -1944,21 +2011,38 @@ class PageRevision(models.Model):
                 page.go_live_at.isoformat()
             )
 
-            LogEntry.objects.log_action(
-                instance=page,
-                action='wagtail.schedule.publish',
-                data={
-                    'revision': {
-                        'id': self.id,
-                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
-                        'has_live_version': page.live,
-                    }
-                },
-                user=user,
-                revision=self,
-                published=page.live,
-                content_changed=changed,
-            )
+            if not previous_revision:
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.schedule.publish',
+                    data={
+                        'revision': {
+                            'id': self.id,
+                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                            'has_live_version': page.live,
+                        }
+                    },
+                    user=user,
+                    revision=self,
+                    published=page.live,
+                    content_changed=changed,
+                )
+            else:
+                LogEntry.objects.log_action(
+                    instance=page,
+                    action='wagtail.schedule.revert',
+                    user=user,
+                    data={
+                        'revision': {
+                            'id': previous_revision.id,
+                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
+                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M")
+                        }
+                    },
+                    revision=self,
+                    published=page.live,
+                    content_changed=changed,
+                )
 
     def get_previous(self):
         return self.get_previous_by_created_at(page=self.page)
