@@ -667,7 +667,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             LogEntry.objects.log_action(
                 instance=self,
                 action='wagtail.create',
-                user=user,
+                user=user or self.owner,
                 created=True,
                 published=False,
                 content_changed=True,
@@ -704,15 +704,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             return super().delete(*args, **kwargs)
         else:
             # retrieve an actual Page instance and delete that instead of self
-            page = Page.objects.get(id=self.id)
-            LogEntry.objects.log_action(
-                instance=page,
-                action='wagtail.delete',
-                user=user,
-                deleted=True,
-            )
-            return page.delete(*args, **kwargs)
-
+            return Page.objects.get(id=self.id).delete(*args, **kwargs)
 
     @classmethod
     def check(cls, **kwargs):

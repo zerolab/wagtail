@@ -1266,7 +1266,7 @@ def lock(request, page_id):
         page.locked = True
         page.locked_by = request.user
         page.locked_at = timezone.now()
-        page.save(is_locking=True)
+        page.save(user=request.user, is_locking=True)
 
     # Redirect
     redirect_to = request.POST.get('next', None)
