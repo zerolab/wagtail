@@ -601,7 +601,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
 
     @transaction.atomic
     # ensure that changes are only committed when we have updated all descendant URL paths, to preserve consistency
-    def save(self, clean=True, **kwargs):
+    def save(self, clean=True, user=None, is_locking=False, is_unlocking=False, **kwargs):
         """
         Overrides default method behaviour to make additional updates unique to pages,
         such as updating the ``url_path`` value of descendant page to reflect changes
@@ -662,18 +662,55 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                 self.url_path
             )
 
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.create',
+                user=user,
+                created=True,
+                published=False,
+                content_changed=True,
+            )
+
+        if is_locking:
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.lock',
+                user=user
+            )
+        elif is_unlocking:
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.unlock',
+                user=user
+            )
+
         return result
 
     def delete(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         # Ensure that deletion always happens on an instance of Page, not a specific subclass. This
         # works around a bug in treebeard <= 3.0 where calling SpecificPage.delete() fails to delete
         # child pages that are not instances of SpecificPage
         if type(self) is Page:
             # this is a Page instance, so carry on as we were
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.delete',
+                user=user,
+                deleted=True,
+            )
             return super().delete(*args, **kwargs)
         else:
             # retrieve an actual Page instance and delete that instead of self
-            return Page.objects.get(id=self.id).delete(*args, **kwargs)
+            page = Page.objects.get(id=self.id)
+            LogEntry.objects.log_action(
+                instance=page,
+                action='wagtail.delete',
+                user=user,
+                deleted=True,
+            )
+            return page.delete(*args, **kwargs)
+
 
     @classmethod
     def check(cls, **kwargs):
@@ -811,7 +848,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         # in a fixture or migration that didn't explicitly handle draft_title)
         return self.draft_title or self.title
 
-    def save_revision(self, user=None, submitted_for_moderation=False, approved_go_live_at=None, changed=True):
+    def save_revision(self, user=None, submitted_for_moderation=False, approved_go_live_at=None, changed=True, log_action=False):
         self.full_clean()
 
         # Create revision
@@ -839,6 +876,15 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
 
         # Log
         logger.info("Page edited: \"%s\" id=%d revision_id=%d", self.title, self.id, revision.id)
+        if log_action:
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.edit',
+                user=user,
+                revision=revision,
+                published=False,
+                content_changed=changed,
+            )
 
         if submitted_for_moderation:
             logger.info("Page submitted for moderation: \"%s\" id=%d revision_id=%d", self.title, self.id, revision.id)
@@ -871,7 +917,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         else:
             return self.specific
 
-    def unpublish(self, set_expired=False, commit=True):
+    def unpublish(self, set_expired=False, commit=True, user=None):
         """
         Unpublish the page by setting ``live`` to ``False``. Does nothing if ``live`` is already ``False``
         """
@@ -888,6 +934,13 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                 self.save(clean=False)
 
             page_unpublished.send(sender=self.specific_class, instance=self.specific)
+
+            LogEntry.objects.log_action(
+                instance=self,
+                action='wagtail.unpublish',
+                user=user,
+                unpublished=True,
+            )
 
             logger.info("Page unpublished: \"%s\" id=%d", self.title, self.id)
 
@@ -1239,7 +1292,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         return (not self.live) and (not self.get_descendants().filter(live=True).exists())
 
     @transaction.atomic  # only commit when all descendants are properly updated
-    def move(self, target, pos=None):
+    def move(self, target, pos=None, user=None):
         """
         Extension to the treebeard 'move' method to ensure that url_path is updated too.
         """
@@ -1253,10 +1306,25 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         new_self._update_descendant_url_paths(old_url_path, new_url_path)
 
         # Log
+        LogEntry.objects.log_action(
+            instance=self,
+            action='wagtail.move',
+            user=user,
+            data={
+                'source': {
+                    'id': self.id,
+                    'title': self.get_admin_display_title()
+                },
+                'destination': {
+                    'id': target.id,
+                    'title': target.get_admin_display_title()
+                }
+            }
+        )
         logger.info("Page moved: \"%s\" id=%d path=%s", self.title, self.id, new_url_path)
 
     def copy(self, recursive=False, to=None, update_attrs=None, copy_revisions=True, keep_live=True, user=None,
-             process_child_object=None, exclude_fields=None, after_page_copy=None):
+             process_child_object=None, exclude_fields=None):
 
         specific_self = self.specific
         if keep_live:
@@ -1277,9 +1345,6 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             base_update_attrs.update(update_attrs)
 
         page_copy, child_object_id_map = self._copy(exclude_fields=exclude_fields, update_attrs=base_update_attrs, to=to, recursive=recursive, process_child_object=process_child_object)
-
-        if after_page_copy and callable(after_page_copy):
-            after_page_copy(specific_self, page_copy, keep_live)
 
         # Copy revisions
         if copy_revisions:
@@ -1334,6 +1399,27 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             page_copy.save()
 
         # Log
+        LogEntry.objects.log_action(
+            instance=page_copy,
+            action='wagtail.copy',
+            user=user,
+            data={
+                'page': {
+                    'id': page_copy.id,
+                    'title': page_copy.get_admin_display_title()
+                },
+                'source': {
+                    'id': specific_self.get_parent().id,
+                    'title': specific_self.get_parent().get_admin_display_title(),
+                },
+                'destination': {
+                    'id': to.id,
+                    'title': to.get_admin_display_title(),
+                }
+            },
+            created=True,
+            published=page_copy.live and keep_live
+        )
         logger.info("Page copied: \"%s\" id=%d from=%d", page_copy.title, page_copy.id, self.id)
 
         # Copy child pages
@@ -1747,14 +1833,27 @@ class PageRevision(models.Model):
     def as_page_object(self):
         return self.page.specific.with_content_json(self.content_json)
 
-    def approve_moderation(self):
+    def approve_moderation(self, user=None):
         if self.submitted_for_moderation:
             logger.info("Page moderation approved: \"%s\" id=%d revision_id=%d", self.page.title, self.page.id, self.id)
+            LogEntry.objects.log_action(
+                instance=self.as_page_object(),
+                action='wagtail.moderation.approve',
+                user=user,
+                revision=self,
+                published=True,
+            )
             self.publish()
 
-    def reject_moderation(self):
+    def reject_moderation(self, user=None):
         if self.submitted_for_moderation:
             logger.info("Page moderation rejected: \"%s\" id=%d revision_id=%d", self.page.title, self.page.id, self.id)
+            LogEntry.objects.log_action(
+                instance=self.as_page_object(),
+                action='wagtail.moderation.reject',
+                user=user,
+                revision=self,
+            )
             self.submitted_for_moderation = False
             self.save(update_fields=['submitted_for_moderation'])
 
@@ -1766,7 +1865,7 @@ class PageRevision(models.Model):
         latest_revision = PageRevision.objects.filter(page_id=self.page_id).order_by('-created_at', '-id').first()
         return (latest_revision == self)
 
-    def publish(self):
+    def publish(self, user=None, changed=True):
         page = self.as_page_object()
         if page.go_live_at and page.go_live_at > timezone.now():
             page.has_unpublished_changes = True
@@ -1808,6 +1907,16 @@ class PageRevision(models.Model):
         if page.live:
             page_published.send(sender=page.specific_class, instance=page.specific, revision=self)
 
+            LogEntry.objects.log_action(
+                instance=page,
+                action='wagtail.publish',
+                user=user,
+                revision=self,
+                created=True,
+                published=True,
+                content_changed=changed,
+            )
+
             logger.info("Page published: \"%s\" id=%d revision_id=%d", page.title, page.id, self.id)
         elif page.go_live_at:
             logger.info(
@@ -1816,6 +1925,22 @@ class PageRevision(models.Model):
                 page.id,
                 self.id,
                 page.go_live_at.isoformat()
+            )
+
+            LogEntry.objects.log_action(
+                instance=page,
+                action='wagtail.schedule.publish',
+                data={
+                    'revision': {
+                        'id': self.id,
+                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                        'has_live_version': page.live,
+                    }
+                },
+                user=user,
+                revision=self,
+                published=page.live,
+                content_changed=changed,
             )
 
     def get_previous(self):
@@ -2636,12 +2761,30 @@ class Workflow(ClusterableModel):
         return Task.objects.filter(workflow_tasks__workflow=self).order_by('workflow_tasks__sort_order')
 
     @transaction.atomic
-    def start(self, page, user):
+    def start(self, page, user, has_content_changes=True):
         """Initiates a workflow by creating an instance of ``WorkflowState``"""
         state = WorkflowState(page=page, workflow=self, status=WorkflowState.STATUS_IN_PROGRESS, requested_by=user)
         state.save()
         state.update(user=user)
         workflow_submitted.send(sender=state.__class__, instance=state, user=user)
+
+        LogEntry.objects.log_action(
+            instance=page,
+            action='wagtail.workflow.start',
+            data={
+                'workflow': {
+                    'id': self.id,
+                    'title': self.name,
+                    'status': state.status,
+                    'next': state.current_task_state.task.name if state.current_task_state else None,
+                }
+            },
+            revision=page.get_latest_revision(),
+            user=user,
+            created=True,
+            content_changed=has_content_changes,
+        )
+
         return state
 
     @transaction.atomic
@@ -2944,6 +3087,8 @@ class TaskState(MultiTableCopyMixin, models.Model):
         self.status = self.STATUS_APPROVED
         self.finished_at = timezone.now()
         self.save()
+
+        self.log_action(user, 'approve')
         if update:
             self.workflow_state.update(user=user)
         task_approved.send(sender=self.specific.__class__, instance=self.specific, user=user)
@@ -2957,9 +3102,12 @@ class TaskState(MultiTableCopyMixin, models.Model):
         self.status = self.STATUS_REJECTED
         self.finished_at = timezone.now()
         self.save()
+
+        self.log_action(user, 'reject')
         if update:
             self.workflow_state.update(user=user)
         task_rejected.send(sender=self.specific.__class__, instance=self.specific, user=user)
+
         return self
 
     @cached_property
@@ -3006,6 +3154,26 @@ class TaskState(MultiTableCopyMixin, models.Model):
         Use mark_safe to return HTML.
         """
         return ""
+
+    def log_action(self, user, action):
+        """Log the approval/rejection action"""
+        page = self.page_revision.as_page_object()
+        LogEntry.objects.log_action(
+            instance=page,
+            action=f'wagtail.workflow.{action}',
+            user=user,
+            data={
+                'workflow': {
+                    'id': self.workflow_state.workflow.id,
+                    'title': self.workflow_state.workflow.name,
+                    'status': self.status,
+                    'task': self.task.name,
+                    'next': page.current_workflow_task.name \
+                        if page.current_workflow_task else None,
+                }
+            },
+            revision=self.page_revision
+        )
 
     class Meta:
         verbose_name = _('Task state')
