@@ -136,7 +136,7 @@ class WorkflowTasksReportFilterSet(WagtailFilterSet):
         fields = ['workflow', 'task', 'status', 'started_at', 'finished_at']
 
 
-class MissionControlReportFilterSet(WagtailFilterSet):
+class SiteHistoryReportFilterSet(WagtailFilterSet):
     action = django_filters.ChoiceFilter(choices=log_action_registry.get_choices)
     timestamp = django_filters.DateFromToRangeFilter(label=_('Date'), widget=DateRangePickerWidget)
     object_title = django_filters.CharFilter(label=_('Title'), lookup_expr='icontains')

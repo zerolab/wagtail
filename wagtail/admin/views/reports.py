@@ -13,8 +13,7 @@ from xlsxwriter.workbook import Workbook
 
 from wagtail.admin.auth import permission_denied
 from wagtail.admin.filters import (
-    LockedPagesReportFilterSet, MissionControlReportFilterSet,
-    WorkflowReportFilterSet, WorkflowTasksReportFilterSet, PageHistoryReportFilterSet
+    LockedPagesReportFilterSet, SiteHistoryReportFilterSet, WorkflowReportFilterSet, WorkflowTasksReportFilterSet,
 )
 from wagtail.core.models import LogEntry, Page, TaskState, UserPagePermissionsProxy, WorkflowState, Site
 
@@ -346,10 +345,10 @@ class WorkflowTasksView(ReportView):
 
 
 class LogEntriesView(ReportView):
-    template_name = 'wagtailadmin/reports/mission_control.html'
-    title = _('Mission control')
+    template_name = 'wagtailadmin/reports/site_history.html'
+    title = _('Site history')
     header_icon = 'cogs'
-    filterset_class = MissionControlReportFilterSet
+    filterset_class = SiteHistoryReportFilterSet
 
     export_headings = {
         "object_id": _("ID"),
