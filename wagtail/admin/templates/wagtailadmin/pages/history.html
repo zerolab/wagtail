@@ -3,6 +3,8 @@
 
 {% block titletag %}{% blocktrans with title=subtitle %}Page history for {{ subtitle }}{% endblocktrans %}{% endblock %}
 
+{% block bodyclass %}page-with-top-filters{% endblock %}
+
 {% block results %}
     {% if object_list %}
         <table class="listing">
@@ -46,4 +48,18 @@
 
 {% block no_results %}
     <p>{% trans "No log entries found." %}</p>
+{% endblock %}
+
+{% block filters %}
+    <h2>{% trans 'Filter' %}</h2>
+    <form method="get">
+        {% for filter in filters.form %}
+            <div class="filter">
+            {{ filter.label_tag }}
+            {{ filter }}
+            {{ filter.errors }}
+            </div>
+        {% endfor %}
+        <button class="button button-longrunning" type="submit">{% trans 'Apply filters' %}</button>
+    </form>
 {% endblock %}

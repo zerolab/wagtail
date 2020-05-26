@@ -26,4 +26,22 @@
         display: block;
         margin-right: 10px;
     }
+
+}
+
+.page-with-top-filters .report {
+    &--has-filters {
+        grid-template-columns: auto;
+    }
+
+    &__filters {
+        grid-row: 1;
+    }
+
+    form {
+        display: grid;
+        grid-template-columns: minmax(100px, max-content) repeat(auto-fill, 200px) 20%;
+        grid-gap: 1em;
+        margin-bottom: 1em;
+    }
 }

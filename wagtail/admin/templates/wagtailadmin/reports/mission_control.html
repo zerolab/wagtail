@@ -1,6 +1,7 @@
-{% extends 'wagtailadmin/reports/base_page_report.html' %}
+{% extends 'wagtailadmin/reports/base_report.html' %}
 {% load i18n wagtailadmin_tags %}
 
+{% block bodyclass %}page-with-top-filters{% endblock %}
 
 {% block results %}
     {% if object_list %}
@@ -58,4 +59,18 @@
 
 {% block no_results %}
     <p>{% trans "No log entries found." %}</p>
+{% endblock %}
+
+{% block filters %}
+    <h2>{% trans 'Filter' %}</h2>
+    <form method="get">
+        {% for filter in filters.form %}
+            <div class="filter">
+            {{ filter.label_tag }}
+            {{ filter }}
+            {{ filter.errors }}
+            </div>
+        {% endfor %}
+        <button class="button button-longrunning" type="submit">{% trans 'Apply filters' %}</button>
+    </form>
 {% endblock %}
