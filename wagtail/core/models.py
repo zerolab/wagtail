@@ -689,14 +689,15 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         return result
 
     def delete(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
         # Ensure that deletion always happens on an instance of Page, not a specific subclass. This
         # works around a bug in treebeard <= 3.0 where calling SpecificPage.delete() fails to delete
         # child pages that are not instances of SpecificPage
         if type(self) is Page:
+            user = kwargs.pop('user', None)
+
             # this is a Page instance, so carry on as we were
             LogEntry.objects.log_action(
-                instance=self,
+                instance=self.specific,
                 action='wagtail.delete',
                 user=user,
                 deleted=True,
