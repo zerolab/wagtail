@@ -1,0 +1,49 @@
+{% extends 'wagtailadmin/reports/base_report.html' %}
+{% load i18n wagtailadmin_tags %}
+
+{% block titletag %}{% blocktrans with title=subtitle %}Page history for {{ subtitle }}{% endblocktrans %}{% endblock %}
+
+{% block results %}
+    {% if object_list %}
+        <table class="listing">
+            <thead>
+                <tr>
+                    <th>
+                        {% trans 'Action' %}
+                    </th>
+                    <th>
+                        {% trans 'User' %}
+                    </th>
+                    <th class="updated">
+                        {% trans 'Date / Time' %}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in object_list %}
+                    <tr>
+                        <td>
+                            {{ entry|format_action_log_message }}
+
+                            {% if entry.revision %}
+                                {% include "wagtailadmin/pages/revisions/_actions.html" with revision=entry.revision %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% include "wagtailadmin/shared/user_avatar.html" with user=entry.user %}
+                        </td>
+                        <td class="updated">
+                            <div class="human-readable-date" title="{{ entry.timestamp|date:"d M Y H:i" }}">{% blocktrans with time_period=entry.timestamp|timesince %}{{ time_period }} ago{% endblocktrans %}</div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "No log entries found." %}</p>
+    {% endif %}
+{% endblock %}
+
+{% block no_results %}
+    <p>{% trans "No log entries found." %}</p>
+{% endblock %}

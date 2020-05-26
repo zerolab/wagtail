@@ -144,3 +144,15 @@ class MissionControlReportFilterSet(WagtailFilterSet):
     class Meta:
         model = LogEntry
         fields = ['object_title', 'action', 'user', 'timestamp']
+
+
+class PageHistoryReportFilterSet(WagtailFilterSet):
+    action = django_filters.ChoiceFilter(choices=log_action_registry.get_choices)
+    timestamp = django_filters.DateFromToRangeFilter(label=_('Date'), widget=DateRangePickerWidget)
+    has_revision = django_filters.BooleanFilter(
+        label=_('Revision'), field_name='revision', lookup_expr='isnull', exclude=True
+    )
+
+    class Meta:
+        model = LogEntry
+        fields = ['action', 'user', 'timestamp']

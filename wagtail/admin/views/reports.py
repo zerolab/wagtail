@@ -14,7 +14,7 @@ from xlsxwriter.workbook import Workbook
 from wagtail.admin.auth import permission_denied
 from wagtail.admin.filters import (
     LockedPagesReportFilterSet, MissionControlReportFilterSet,
-    WorkflowReportFilterSet, WorkflowTasksReportFilterSet
+    WorkflowReportFilterSet, WorkflowTasksReportFilterSet, PageHistoryReportFilterSet
 )
 from wagtail.core.models import LogEntry, Page, TaskState, UserPagePermissionsProxy, WorkflowState, Site
 

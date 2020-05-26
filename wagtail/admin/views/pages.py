@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.html import format_html
 from django.utils.http import is_safe_url, urlquote
 from django.utils.safestring import mark_safe
@@ -20,6 +21,9 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.vary import vary_on_headers
 from django.views.generic import View
+
+from wagtail.admin.filters import PageHistoryReportFilterSet
+from wagtail.admin.views.reports import ReportView
 
 from wagtail.admin import messages, signals
 from wagtail.admin.action_menu import PageActionMenu
@@ -1550,15 +1554,25 @@ def workflow_history_detail(request, page_id, workflow_state_id):
     })
 
 
-@user_passes_test(user_has_any_page_permission)
-def history(request, page_id):
-    page = get_object_or_404(Page, id=page_id).specific
+class PageHistoryView(ReportView):
+    template_name = 'wagtailadmin/pages/history.html'
+    title = _('Page history')
+    header_icon = 'doc-empty-inverse'
+    paginate_by = 20
+    filterset_class = PageHistoryReportFilterSet
 
-    entries = LogEntry.objects.get_for_instance(page).order_by('-timestamp')
-    paginator = Paginator(entries, per_page=20)
-    entries = paginator.get_page(request.GET.get('p'))
+    @method_decorator(user_passes_test(user_has_any_page_permission))
+    def dispatch(self, request, *args, **kwargs):
+        self.page = get_object_or_404(Page, id=kwargs.pop('page_id')).specific
 
-    return render(request, 'wagtailadmin/pages/history/index.html', {
-        'page': page,
-        'entries': entries,
-    })
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, *args, object_list=None, **kwargs):
+        context = super().get_context_data(*args, object_list=object_list, **kwargs)
+        context['page'] = self.page
+        context['subtitle'] = self.page.get_admin_display_title()
+
+        return context
+
+    def get_queryset(self):
+        return LogEntry.objects.get_for_instance(self.page)
