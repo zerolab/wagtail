@@ -10,9 +10,6 @@
                     <th class="title">
                         {% trans 'Title' %}
                     </th>
-                    <th class="type">
-                        {% trans 'Type' %}
-                    </th>
                     <th>
                         {% trans 'Action' %}
                     </th>
@@ -22,21 +19,17 @@
                     <th class="updated">
                         {% trans 'Date / Time' %}
                     </th>
-
-                    <th>
-                        {% trans 'Comment' %}
-                    </th>
                 </tr>
             </thead>
             <tbody>
                 {% for entry in object_list %}
                     <tr>
                         <td class="title">
-                            {% if entry.is_page %}
+                            {% if entry.is_page and entry.get_page %}
                                 {% with entry.get_page as page %}
-                                    {% if page %}
-                                        {% page_permissions page as page_perms %}
-                                        {% include "wagtailadmin/pages/listing/_page_title_explore.html" %}
+                                    {% page_permissions page as page_perms %}
+                                    {% if page_perms.can_edit %}
+                                        <a href="{% url 'wagtailadmin_pages:edit' page.id %}" title="{% trans 'Edit this page' %}">{{ entry.object_title }}</a>
                                     {% else %}
                                         {{ entry.object_title }}
                                     {% endif %}
@@ -44,9 +37,6 @@
                             {% else %}
                                 {{ entry.object_title }}
                             {% endif %}
-                        </td>
-                        <td class="type">
-                            {{ entry.object_verbose_name }}
                         </td>
                         <td>
                             {{ entry|format_action_log_message }}
@@ -57,7 +47,6 @@
                         <td class="updated">
                             <div class="human-readable-date" title="{{ entry.timestamp|date:"d M Y H:i" }}">{% blocktrans with time_period=entry.timestamp|timesince %}{{ time_period }} ago{% endblocktrans %}</div>
                         </td>
-                        <td>{{ entry.comment }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

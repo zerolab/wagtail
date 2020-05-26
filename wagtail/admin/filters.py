@@ -138,8 +138,8 @@ class WorkflowTasksReportFilterSet(WagtailFilterSet):
 
 class MissionControlReportFilterSet(WagtailFilterSet):
     action = django_filters.ChoiceFilter(choices=log_action_registry.get_choices)
-    timestamp = django_filters.DateFromToRangeFilter(widget=DateRangePickerWidget)
-    object_title = django_filters.CharFilter(label=_('Title'))
+    timestamp = django_filters.DateFromToRangeFilter(label=_('Date'), widget=DateRangePickerWidget)
+    object_title = django_filters.CharFilter(label=_('Title'), lookup_expr='icontains')
 
     class Meta:
         model = LogEntry
