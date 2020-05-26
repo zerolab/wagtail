@@ -795,9 +795,9 @@ def register_workflow_log_actions(actions):
             return format_lazy(
                 _("'{workflow}' started. Next step '{task}'"),
                 workflow=data['workflow']['title'],
-                task=data['workflow']['next'],
+                task=data['workflow']['next']['title'],
             )
-        except KeyError:
+        except (KeyError, TypeError):
             return _('Workflow started')
 
     def workflow_approve_message(data):
@@ -805,25 +805,25 @@ def register_workflow_log_actions(actions):
             if data['workflow']['next']:
                 return format_lazy(
                     _("Approved at '{task}'. Next step '{next_task}'"),
-                    task=data['workflow']['task'],
-                    next_task=data['workflow']['next']
+                    task=data['workflow']['task']['title'],
+                    next_task=data['workflow']['next']['title']
                 )
             else:
                 return format_lazy(
                     _("Approved at '{task}'. '{workflow}' complete"),
-                    task=data['workflow']['task'],
+                    task=data['workflow']['task']['title'],
                     workflow=data['workflow']['title']
                 )
-        except KeyError:
+        except (KeyError, TypeError):
             return _('Workflow task approved')
 
     def workflow_reject_message(data):
         try:
             return format_lazy(
                 _("Rejected at '{task}'. Workflow complete"),
-                task=data['workflow']['task'],
+                task=data['workflow']['task']['title'],
             )
-        except KeyError:
+        except (KeyError, TypeError):
             return _('Workflow task rejected. Workflow complete')
 
     actions.register_action('wagtail.workflow.start', _('Workflow: start'), workflow_start_message)

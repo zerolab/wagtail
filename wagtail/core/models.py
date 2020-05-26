@@ -2935,6 +2935,12 @@ class Workflow(ClusterableModel):
         state.update(user=user)
         workflow_submitted.send(sender=state.__class__, instance=state, user=user)
 
+        next_task_data = None
+        if state.current_task_state:
+            next_task_data = {
+                'id': state.current_task_state.task.id,
+                'title': state.current_task_state.task.name,
+            }
         LogEntry.objects.log_action(
             instance=page,
             action='wagtail.workflow.start',
@@ -2943,7 +2949,7 @@ class Workflow(ClusterableModel):
                     'id': self.id,
                     'title': self.name,
                     'status': state.status,
-                    'next': state.current_task_state.task.name if state.current_task_state else None,
+                    'next': next_task_data,
                 }
             },
             revision=page.get_latest_revision(),
@@ -3325,6 +3331,13 @@ class TaskState(MultiTableCopyMixin, models.Model):
     def log_action(self, user, action):
         """Log the approval/rejection action"""
         page = self.page_revision.as_page_object()
+        next_task = self.workflow_state.get_next_task()
+        next_task_data = None
+        if next_task:
+            next_task_data = {
+                'id': next_task.id,
+                'title': next_task.name
+            }
         LogEntry.objects.log_action(
             instance=page,
             action=f'wagtail.workflow.{action}',
@@ -3334,9 +3347,11 @@ class TaskState(MultiTableCopyMixin, models.Model):
                     'id': self.workflow_state.workflow.id,
                     'title': self.workflow_state.workflow.name,
                     'status': self.status,
-                    'task': self.task.name,
-                    'next': page.current_workflow_task.name \
-                        if page.current_workflow_task else None,
+                    'task': {
+                        'id': self.task.id,
+                        'title': self.task.name,
+                    },
+                    'next': next_task_data,
                 }
             },
             revision=self.page_revision
