@@ -259,32 +259,6 @@ def create(request, content_type_app_name, content_type_model_name, parent_page_
                     messages.success(request, _("Page '{0}' created and scheduled for publishing.").format(page.get_admin_display_title()), buttons=[
                         messages.button(reverse('wagtailadmin_pages:edit', args=(page.id,)), _('Edit'))
                     ])
-
-                    # Log both creation and schedule
-                    LogEntry.objects.log_action(
-                        instance=page,
-                        action='wagtail.create',
-                        user=request.user,
-                        revision=revision,
-                        created=True,
-                        published=False,
-                        content_changed=True,
-                    )
-                    LogEntry.objects.log_action(
-                        instance=page,
-                        action='wagtail.schedule.publish',
-                        user=request.user,
-                        data={
-                            'revision': {
-                                'id': revision.id,
-                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
-                            }
-                        },
-                        revision=revision,
-                        created=True,
-                        published=True,
-                        content_changed=True,
-                    )
                 else:
                     buttons = []
                     if page.url is not None:
@@ -1266,7 +1240,7 @@ def lock(request, page_id):
         page.locked = True
         page.locked_by = request.user
         page.locked_at = timezone.now()
-        page.save(user=request.user, is_locking=True)
+        page.save(user=request.user, log_action='wagtail.lock')
 
     # Redirect
     redirect_to = request.POST.get('next', None)
@@ -1290,7 +1264,7 @@ def unlock(request, page_id):
         page.locked = False
         page.locked_by = None
         page.locked_at = None
-        page.save(user=request.user, is_unlocking=True)
+        page.save(user=request.user, log_action='wagtail.unlock')
 
         messages.success(request, _("Page '{0}' is now unlocked.").format(page.get_admin_display_title()), extra_tags='unlock')
 

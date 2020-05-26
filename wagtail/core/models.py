@@ -603,7 +603,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
 
     @transaction.atomic
     # ensure that changes are only committed when we have updated all descendant URL paths, to preserve consistency
-    def save(self, clean=True, user=None, is_locking=False, is_unlocking=False, **kwargs):
+    def save(self, clean=True, user=None, log_action=False, **kwargs):
         """
         Overrides default method behaviour to make additional updates unique to pages,
         such as updating the ``url_path`` value of descendant page to reflect changes
@@ -672,17 +672,10 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                 published=False,
                 content_changed=True,
             )
-
-        if is_locking:
+        elif log_action and isinstance(log_action, str):
             LogEntry.objects.log_action(
                 instance=self,
-                action='wagtail.lock',
-                user=user
-            )
-        elif is_unlocking:
-            LogEntry.objects.log_action(
-                instance=self,
-                action='wagtail.unlock',
+                action=log_action,
                 user=user
             )
 
@@ -851,7 +844,8 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         :param submitted_for_moderation: indicates whether the page was submitted for moderation
         :param approved_go_live_at: the date and time the revision is approved to go live
         :param changed: indicates whether there were any content changes
-        :param log_action: flag to log action
+        :param log_action: flag for logging the action. Pass False to skip logging. Can be passed an action string.
+            Defaults to 'wagtail.edit' when no 'previous_revision' param is passed, otherwise 'wagtail.revert'
         :param previous_revision: indicates a revision reversal. Should be set to the previous revision instance
         :return: the newly created revision
         """
@@ -887,7 +881,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             if not previous_revision:
                 LogEntry.objects.log_action(
                     instance=self,
-                    action='wagtail.edit',
+                    action=log_action if isinstance(log_action, str) else 'wagtail.edit',
                     user=user,
                     revision=revision,
                     published=False,
@@ -896,7 +890,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             else:
                 LogEntry.objects.log_action(
                     instance=self,
-                    action='wagtail.revert',
+                    action=log_action if isinstance(log_action, str) else 'wagtail.revert',
                     user=user,
                     data={
                         'revision': {
@@ -940,9 +934,11 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         else:
             return self.specific
 
-    def unpublish(self, set_expired=False, commit=True, user=None):
+    def unpublish(self, set_expired=False, commit=True, user=None, log_action=True):
         """
         Unpublish the page by setting ``live`` to ``False``. Does nothing if ``live`` is already ``False``
+        :param log_action: flag for logging the action. Pass False to skip logging. Can be passed an action string.
+            Defaults to 'wagtail.unpublish'
         """
         if self.live:
             self.live = False
@@ -958,12 +954,13 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
 
             page_unpublished.send(sender=self.specific_class, instance=self.specific)
 
-            LogEntry.objects.log_action(
-                instance=self,
-                action='wagtail.unpublish',
-                user=user,
-                unpublished=True,
-            )
+            if log_action:
+                LogEntry.objects.log_action(
+                    instance=self,
+                    action=log_action if isinstance(log_action, str) else 'wagtail.unpublish',
+                    user=user,
+                    unpublished=True,
+                )
 
             logger.info("Page unpublished: \"%s\" id=%d", self.title, self.id)
 
@@ -1348,7 +1345,12 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
         logger.info("Page moved: \"%s\" id=%d path=%s", self.title, self.id, new_url_path)
 
     def copy(self, recursive=False, to=None, update_attrs=None, copy_revisions=True, keep_live=True, user=None,
-             process_child_object=None, exclude_fields=None):
+             process_child_object=None, exclude_fields=None, log_action=True):
+        """
+        Copies a given page
+        :param log_action flag for logging the action. Pass False to skip logging.
+            Can be passed an action string. Defaults to 'wagtail.copy'
+        """
 
         specific_self = self.specific
         if keep_live:
@@ -1423,27 +1425,28 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
             page_copy.save()
 
         # Log
-        LogEntry.objects.log_action(
-            instance=page_copy,
-            action='wagtail.copy',
-            user=user,
-            data={
-                'page': {
-                    'id': page_copy.id,
-                    'title': page_copy.get_admin_display_title()
+        if log_action:
+            LogEntry.objects.log_action(
+                instance=page_copy,
+                action=log_action if isinstance(log_action, str) else 'wagtail.copy',
+                user=user,
+                data={
+                    'page': {
+                        'id': page_copy.id,
+                        'title': page_copy.get_admin_display_title()
+                    },
+                    'source': {
+                        'id': specific_self.get_parent().id,
+                        'title': specific_self.get_parent().get_admin_display_title(),
+                    },
+                    'destination': {
+                        'id': to.id,
+                        'title': to.get_admin_display_title(),
+                    }
                 },
-                'source': {
-                    'id': specific_self.get_parent().id,
-                    'title': specific_self.get_parent().get_admin_display_title(),
-                },
-                'destination': {
-                    'id': to.id,
-                    'title': to.get_admin_display_title(),
-                }
-            },
-            created=True,
-            published=page_copy.live and keep_live
-        )
+                created=True,
+                published=page_copy.live and keep_live
+            )
         logger.info("Page copied: \"%s\" id=%d from=%d", page_copy.title, page_copy.id, self.id)
 
         # Copy child pages
@@ -1907,14 +1910,44 @@ class PageRevision(models.Model):
         latest_revision = PageRevision.objects.filter(page_id=self.page_id).order_by('-created_at', '-id').first()
         return (latest_revision == self)
 
-    def publish(self, user=None, changed=True, previous_revision=None):
+    def publish(self, user=None, changed=True, log_action=True, previous_revision=None):
         """
         Publishes or schedules revision for publishing.
         :param user: the publishing user
         :param changed: indicated whether content has changed
+        :param log_action: flag for the logging action. Pass False to skip logging. Cannot pass an action string
+            as the method performs several actions: "publish", "revert" (and publish the reverted revision),
+            "schedule publishing with a live revision", "schedule revision reversal publishing, with a live revision",
+            "schedule publishing", "schedule revision reversal publishing"
         :param previous_revision: indicates a revision reversal. Should be set to the previous revision instance
         """
         page = self.as_page_object()
+
+        def log_scheduling_action(revision, previous_revision=None, user=None, changed=changed):
+            if not previous_revision:
+                action = 'wagtail.schedule.publish'
+                revision_for_data = self
+            else:
+                action = 'wagtail.schedule.revert'
+                revision_for_data = previous_revision
+
+            LogEntry.objects.log_action(
+                instance=page,
+                action=action,
+                user=user,
+                data={
+                    'revision': {
+                        'id': revision_for_data.id,
+                        'created': revision_for_data.created_at.strftime("%d %b %Y %H:%M"),
+                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                        'has_live_version': page.live,
+                    }
+                },
+                revision=revision,
+                published=page.live,
+                content_changed=changed,
+            )
+
         if page.go_live_at and page.go_live_at > timezone.now():
             page.has_unpublished_changes = True
             # Instead set the approved_go_live_at of this revision
@@ -1925,39 +1958,8 @@ class PageRevision(models.Model):
             # if we are updating a currently live page skip the rest
             if page.live_revision:
                 # Log scheduled publishing
-                if not previous_revision:
-                    LogEntry.objects.log_action(
-                        instance=page,
-                        action='wagtail.schedule.publish',
-                        data={
-                            'revision': {
-                                'id': self.id,
-                                'created': self.created_at.strftime("%d %b %Y %H:%M"),
-                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
-                                'has_live_version': page.live,
-                            }
-                        },
-                        user=user,
-                        revision=self,
-                        published=page.live,
-                        content_changed=changed,
-                    )
-                else:
-                    LogEntry.objects.log_action(
-                        instance=page,
-                        action='wagtail.schedule.revert',
-                        user=user,
-                        data={
-                            'revision': {
-                                'id': previous_revision.id,
-                                'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
-                                'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M")
-                            }
-                        },
-                        revision=self,
-                        published=page.live,
-                        content_changed=changed,
-                    )
+                if log_action:
+                    log_scheduling_action(self, previous_revision, user, changed)
 
                 return
             # if we have a go_live in the future don't make the page live
@@ -1990,27 +1992,23 @@ class PageRevision(models.Model):
         if page.live:
             page_published.send(sender=page.specific_class, instance=page.specific, revision=self)
 
-            if not previous_revision:
+            if log_action:
+                if not previous_revision:
+                    action = 'wagtail.publish'
+                    data = None
+                else:
+                    action = 'wagtail.revert'
+                    data = {
+                       'revision': {
+                           'id': previous_revision.id,
+                           'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                       }
+                   }
                 LogEntry.objects.log_action(
                     instance=page,
-                    action='wagtail.publish',
+                    action=action,
                     user=user,
-                    revision=self,
-                    created=True,
-                    published=True,
-                    content_changed=changed,
-                )
-            else:
-                LogEntry.objects.log_action(
-                    instance=page,
-                    action='wagtail.revert',
-                    user=user,
-                    data={
-                        'revision': {
-                            'id': previous_revision.id,
-                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                        }
-                    },
+                    data=data,
                     revision=self,
                     published=True,
                     content_changed=changed,
@@ -2026,38 +2024,8 @@ class PageRevision(models.Model):
                 page.go_live_at.isoformat()
             )
 
-            if not previous_revision:
-                LogEntry.objects.log_action(
-                    instance=page,
-                    action='wagtail.schedule.publish',
-                    data={
-                        'revision': {
-                            'id': self.id,
-                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
-                            'has_live_version': page.live,
-                        }
-                    },
-                    user=user,
-                    revision=self,
-                    published=page.live,
-                    content_changed=changed,
-                )
-            else:
-                LogEntry.objects.log_action(
-                    instance=page,
-                    action='wagtail.schedule.revert',
-                    user=user,
-                    data={
-                        'revision': {
-                            'id': previous_revision.id,
-                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M"),
-                            'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M")
-                        }
-                    },
-                    revision=self,
-                    published=page.live,
-                    content_changed=changed,
-                )
+            if log_action:
+                log_scheduling_action(self, previous_revision, user, changed)
 
     def get_previous(self):
         return self.get_previous_by_created_at(page=self.page)
