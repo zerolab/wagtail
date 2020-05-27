@@ -1426,6 +1426,7 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
 
         # Log
         if log_action:
+            parent = specific_self.get_parent()
             LogEntry.objects.log_action(
                 instance=page_copy,
                 action=log_action if isinstance(log_action, str) else 'wagtail.copy',
@@ -1435,14 +1436,8 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                         'id': page_copy.id,
                         'title': page_copy.get_admin_display_title()
                     },
-                    'source': {
-                        'id': specific_self.get_parent().id,
-                        'title': specific_self.get_parent().get_admin_display_title(),
-                    },
-                    'destination': {
-                        'id': to.id,
-                        'title': to.get_admin_display_title(),
-                    }
+                    'source': {'id': parent.id, 'title': parent.get_admin_display_title()} if parent else None,
+                    'destination': {'id': to.id, 'title': to.get_admin_display_title()} if to else None,
                 },
                 created=True,
                 published=page_copy.live and keep_live
@@ -1459,7 +1454,6 @@ class Page(MultiTableCopyMixin, AbstractPage, index.Indexed, ClusterableModel, m
                     keep_live=keep_live,
                     user=user,
                     process_child_object=process_child_object,
-                    after_page_copy=after_page_copy
                 )
 
         return page_copy
@@ -1861,6 +1855,7 @@ class PageRevision(models.Model):
             'approved_go_live_at' in kwargs['update_fields'] and self.approved_go_live_at is None:
             # Log scheduled revision publish cancellation
             page = self.as_page_object()
+            # go_live_at = kwargs['update_fields'][]
             LogEntry.objects.log_action(
                 instance=page,
                 action='wagtail.schedule.cancel',
@@ -1868,7 +1863,7 @@ class PageRevision(models.Model):
                     'revision': {
                         'id': self.id,
                         'created': self.created_at.strftime("%d %b %Y %H:%M"),
-                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M"),
+                        'go_live_at': page.go_live_at.strftime("%d %b %Y %H:%M") if page.go_live_at else None,
                     }
                 },
                 user=user,
@@ -2554,8 +2549,6 @@ class BaseViewRestriction(models.Model):
         :param user: the user removing the view restriction
         :param specific_instance: the specific model instance the restriction applies to
         """
-        super().delete(**kwargs)
-
         if specific_instance:
             LogEntry.objects.log_action(
                 instance=specific_instance,
@@ -2568,6 +2561,7 @@ class BaseViewRestriction(models.Model):
                     }
                 }
             )
+        return super().delete(**kwargs)
 
 
 class PageViewRestriction(BaseViewRestriction):
@@ -2588,7 +2582,7 @@ class PageViewRestriction(BaseViewRestriction):
         return super().save(user, specific_instance=self.page.specific, **kwargs)
 
     def delete(self, user=None, **kwargs):
-        return super().save(user, specific_instance=self.page.specific, **kwargs)
+        return super().delete(user, specific_instance=self.page.specific, **kwargs)
 
 
 class BaseCollectionManager(models.Manager):
@@ -3309,7 +3303,7 @@ class TaskState(MultiTableCopyMixin, models.Model):
             }
         LogEntry.objects.log_action(
             instance=page,
-            action=f'wagtail.workflow.{action}',
+            action='wagtail.workflow.{}'.format(action),
             user=user,
             data={
                 'workflow': {
