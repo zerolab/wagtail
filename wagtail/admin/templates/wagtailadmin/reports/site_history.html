@@ -62,7 +62,6 @@
 {% endblock %}
 
 {% block filters %}
-    <h2>{% trans 'Filter' %}</h2>
     <form method="get">
         {% for filter in filters.form %}
             <div class="filter">
@@ -71,6 +70,6 @@
             {{ filter.errors }}
             </div>
         {% endfor %}
-        <button class="button button-longrunning" type="submit">{% trans 'Apply filters' %}</button>
+        <button class="button button-longrunning" type="submit">{% trans 'Filter' %}</button>
     </form>
 {% endblock %}

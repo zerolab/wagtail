@@ -3369,8 +3369,8 @@ class LogEntryManager(models.Manager):
         ct = ContentType.objects.get_for_model(instance, for_concrete_model=False)
         return self.filter(content_type=ct, object_id=instance.pk)
 
-    def get_for_user(self, user_id):
-        return self.filter(user=user_id)
+    def get_for_user(self, user):
+        return self.filter(user=user)
 
     def get_pages(self):
         content_types = ContentType.objects.get_for_models(*get_page_models()).values()
