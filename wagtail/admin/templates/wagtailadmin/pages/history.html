@@ -31,7 +31,9 @@
                             {% if entry.revision %}
                                 {% if entry.revision == page.get_latest_revision %}({% trans 'Current draft' %}){% endif %}
                                 {% if entry.revision == page.live_revision %}({% trans 'Live version' %}){% endif %}
-                                {% include "wagtailadmin/pages/revisions/_actions.html" with revision=entry.revision %}
+                                {% if entry.content_changed %}
+                                    {% include "wagtailadmin/pages/revisions/_actions.html" with revision=entry.revision %}
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
