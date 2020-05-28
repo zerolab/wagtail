@@ -1851,8 +1851,10 @@ class PageRevision(models.Model):
             # ensure that all other revisions of this page have the 'submitted for moderation' flag unset
             self.page.revisions.exclude(id=self.id).update(submitted_for_moderation=False)
 
-        if 'update_fields' in kwargs and \
-            'approved_go_live_at' in kwargs['update_fields'] and self.approved_go_live_at is None:
+        if (
+            self.approved_go_live_at is None
+            and 'update_fields' in kwargs and 'approved_go_live_at' in kwargs['update_fields']
+        ):
             # Log scheduled revision publish cancellation
             page = self.as_page_object()
             # go_live_at = kwargs['update_fields'][]
@@ -1996,11 +1998,11 @@ class PageRevision(models.Model):
                 else:
                     action = 'wagtail.revert'
                     data = {
-                       'revision': {
-                           'id': previous_revision.id,
-                           'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
-                       }
-                   }
+                        'revision': {
+                            'id': previous_revision.id,
+                            'created': previous_revision.created_at.strftime("%d %b %Y %H:%M")
+                        }
+                    }
                 LogEntry.objects.log_action(
                     instance=page,
                     action=action,

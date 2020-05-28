@@ -369,7 +369,8 @@ class LogEntriesView(ReportView):
         super().__init__(**kwargs)
 
         self.custom_field_preprocess['action'] = {
-           self.FORMAT_CSV: self.get_action_label, self.FORMAT_XLSX: self.get_action_label
+            self.FORMAT_CSV: self.get_action_label,
+            self.FORMAT_XLSX: self.get_action_label
         }
 
     def get_filename(self):
@@ -386,9 +387,8 @@ class LogEntriesView(ReportView):
         q = Q(object_id__in=explorable_pages)
         root_page_permissions = Site.find_for_request(self.request).root_page.permissions_for_user(self.request.user)
         if (
-            self.request.user.is_superuser or
-            root_page_permissions.can_add_subpage() or
-            root_page_permissions.can_edit()
+            self.request.user.is_superuser
+            or root_page_permissions.can_add_subpage() or root_page_permissions.can_edit()
         ):
             # Include deleted entries
             q = q | Q(object_id__in=Subquery(

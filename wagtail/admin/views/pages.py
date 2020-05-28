@@ -255,7 +255,7 @@ def create(request, content_type_app_name, content_type_model_name, parent_page_
             # Submit
             if is_submitting:
                 workflow = page.get_workflow()
-                workflow_state = workflow.start(page, request.user)
+                workflow.start(page, request.user)
 
             # Notifications
             if is_publishing:
@@ -883,7 +883,7 @@ def move_confirm(request, page_to_move_id, destination_id):
     if request.method == 'POST':
         # any invalid moves *should* be caught by the permission check above,
         # so don't bother to catch InvalidMoveToDescendant
-        source = page_to_move.get_parent()
+        page_to_move.get_parent()
         page_to_move.move(destination, pos='last-child', user=request.user)
 
         messages.success(request, _("Page '{0}' moved.").format(page_to_move.get_admin_display_title()), buttons=[
