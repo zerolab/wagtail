@@ -20,3 +20,4 @@ Advanced topics
     amp
     adding_reports
     custom_tasks
+    audit_log

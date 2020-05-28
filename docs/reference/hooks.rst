@@ -936,3 +936,34 @@ Document serving
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   Called when Wagtail is about to serve a document. The callable passed into the hook will receive the document object and the request object. If the callable returns an ``HttpResponse``, that response will be returned immediately to the user, instead of serving the document. Note that this hook will be skipped if the :ref:`WAGTAILDOCS_SERVE_METHOD <wagtaildocs_serve_method>` setting is set to ``direct``.
+
+
+Audit log
+---------
+
+.. _register_log_actions:
+
+``register_log_actions``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+    See :ref:`audit_log`
+
+    To add new actions to the registry, call the ``register_action`` method with the action type, its label and the message to be displayed in administrative listings.
+
+    .. code-block:: python
+
+        from django.utils.text import format_lazy
+        from django.utils.translation import gettext_lazy as _
+
+        from wagtail.core import hooks
+
+        @hook.register('register_log_actions')
+        def additional_log_actions(actions):
+            actions.register_action('wagtail_package.echo', _('Echo'), _('Sent an echo'))
+
+            def callback_message(data):
+                return format_lazy(
+                    _('Hello {audience}'),
+                    audience=data['audience'],
+                )
+            actions.register_action('wagtail_package.with_callback', _('Callback'), callback_message)
