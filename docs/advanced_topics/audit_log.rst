@@ -4,10 +4,10 @@ Audit log
 =========
 
 Wagtail provides a mechanism to log actions performed on its objects. Common activities like page creation, update, deletion,
-locking and unlocking, revision scheduling, privacy changes are automatically logged at the model level.
+locking and unlocking, revision scheduling and privacy changes are automatically logged at the model level.
 
 The Wagtail admin uses the action log entries to provide a site-wide and page specific history of changes. It uses a
-a registry of 'actions' that provide additional context for the logged action.
+registry of 'actions' that provide additional context for the logged action.
 
 The audit log-driven Page history replaces the revisions list page, but provide a filter for revision-specific entries.
 
@@ -18,7 +18,7 @@ and register a ``register_log_actions`` hook to describe your action (see :ref:`
 
 You can provide additional metadata by passing additional parameters:
 
-- `user`` - a user object.
+- ``user`` - a user object.
 - ``data`` - a data dictionary, stored as JSON
 - ``title`` - by default, Wagtail will attempt to use ``get_admin_display_title`` or the string representation of the passed object.
 
