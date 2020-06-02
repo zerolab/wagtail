@@ -28,6 +28,7 @@ urlpatterns = [
 
     url(r'^workflow/action/(\d+)/(\w+)/(\d+)/$', pages.workflow_action, name='workflow_action'),
     url(r'^workflow/preview/(\d+)/(\d+)/$', pages.preview_revision_for_task, name='workflow_preview'),
+    path('workflow/status/<int:page_id>/', pages.workflow_status, name='workflow_status'),
 
     url(r'^moderation/(\d+)/approve/$', pages.approve_moderation, name='approve_moderation'),
     url(r'^moderation/(\d+)/reject/$', pages.reject_moderation, name='reject_moderation'),
