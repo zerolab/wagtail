@@ -1,11 +1,15 @@
+from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.test.utils import override_settings
+from django.utils import timezone
+from freezegun import freeze_time
 
 from wagtail.admin.staticfiles import versioned_static
-from wagtail.admin.templatetags.wagtailadmin_tags import avatar_url, notification_static
+from wagtail.admin.templatetags.wagtailadmin_tags import (
+    avatar_url, notification_static, timesince_last_update)
 from wagtail.images.tests.utils import get_test_image_file
 from wagtail.users.models import UserProfile
 
@@ -83,3 +87,26 @@ class TestVersionedStatic(TestCase):
     def test_versioned_static_url(self):
         result = versioned_static('http://example.org/static/wagtailadmin/js/core.js')
         self.assertEqual(result, 'http://example.org/static/wagtailadmin/js/core.js')
+
+
+@freeze_time("2020-06-01 12:00:00")
+class TestTimesinceLastUpdateTag(TestCase):
+    def test_timesince_today_shows_time(self):
+        dt = timezone.now() - timedelta(hours=1)
+        formatted_time = dt.astimezone(timezone.get_current_timezone()).strftime('%H:%M')
+
+        timesince = timesince_last_update(dt)
+        self.assertEqual(timesince, formatted_time)
+
+        # Check prefix output
+        timesince = timesince_last_update(dt, time_prefix='my prefix')
+        self.assertEqual(timesince, 'my prefix {}'.format(formatted_time))
+
+    def test_timesince_before_today_shows_timeago(self):
+        dt = timezone.now() - timedelta(weeks=1, days=2)
+
+        timesince = timesince_last_update(dt)
+        self.assertEqual(timesince, '1\xa0week, 2\xa0days ago')
+
+        timesince = timesince_last_update(dt, use_shorthand=True)
+        self.assertEqual(timesince, '1\xa0week ago')
