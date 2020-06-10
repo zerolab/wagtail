@@ -663,12 +663,12 @@ class SiteHistoryReportMenuItem(MenuItem):
 
 @hooks.register('register_reports_menu_item')
 def register_locked_pages_menu_item():
-    return LockedPagesMenuItem(_('Locked Pages'), reverse('wagtailadmin_reports:locked_pages'), classnames='icon icon-locked', order=700)
+    return LockedPagesMenuItem(_('Locked Pages'), reverse('wagtailadmin_reports:locked_pages'), icon_name='lock', order=700)
 
 
 @hooks.register('register_reports_menu_item')
 def register_workflow_report_menu_item():
-    return WorkflowReportMenuItem(_('Workflows'), reverse('wagtailadmin_reports:workflow'), classnames='icon icon-clipboard-list', order=800)
+    return WorkflowReportMenuItem(_('Workflows'), reverse('wagtailadmin_reports:workflow'), icon_name='clipboard-list', order=800)
 
 
 @hooks.register('register_reports_menu_item')
@@ -678,7 +678,7 @@ def register_workflow_tasks_report_menu_item():
 
 @hooks.register('register_reports_menu_item')
 def register_site_history_report_menu_item():
-    return SiteHistoryReportMenuItem(_('Site history'), reverse('wagtailadmin_reports:site_history'), classnames='icon icon-cogs', order=1000)
+    return SiteHistoryReportMenuItem(_('Site history'), reverse('wagtailadmin_reports:site_history'), icon_name='history', order=1000)
 
 
 @hooks.register('register_admin_menu_item')
@@ -723,6 +723,7 @@ def register_icons(icons):
         'grip.svg',
         'group.svg',
         'help.svg',
+        'history.svg',
         'home.svg',
         'horizontalrule.svg',
         'image.svg',  # aka picture
