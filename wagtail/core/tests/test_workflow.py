@@ -244,3 +244,13 @@ class TestWorkflows(TestCase):
         self.assertEqual(workflow_state.current_task_state.status, TaskState.STATUS_CANCELLED)
         self.assertFalse(TaskState.objects.filter(workflow_state=workflow_state, status=TaskState.STATUS_IN_PROGRESS).exists())
         self.assertFalse(workflow_state.is_active)
+
+    def test_is_at_final_task(self):
+        # test that a Workflow rejected on its second Task can be resumed on the second task
+        data = self.start_workflow_on_homepage()
+        workflow_state = data['workflow_state']
+
+        self.assertFalse(workflow_state.is_at_final_task)
+        workflow_state.current_task_state.approve(user=None)
+        workflow_state.refresh_from_db()
+        self.assertTrue(workflow_state.is_at_final_task)
