@@ -264,6 +264,10 @@
             padding: 0;
             margin-right: 0.5em;
         }
+
+        &.button-longrunning-active .button-longrunning__icon {
+            display: none;
+        }
     }
 
     &:disabled,

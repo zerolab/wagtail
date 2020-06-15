@@ -267,3 +267,9 @@
 .dropdown ul {
     @include transition(opacity 0.2s linear);
 }
+
+.dropdown-button {
+    .button .icon {
+        @include svg-icon(1.5em);
+    }
+}
