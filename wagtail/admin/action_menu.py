@@ -20,6 +20,7 @@ class ActionMenuItem(metaclass=MediaDefiningClass):
     label = ''
     name = None
     classname = ''
+    icon_name = ''
 
     def __init__(self, order=None):
         if order is not None:
@@ -48,6 +49,7 @@ class ActionMenuItem(metaclass=MediaDefiningClass):
             'url': self.get_url(request, context),
             'name': self.name,
             'classname': self.classname,
+            'icon_name': self.icon_name,
         })
         return context
 

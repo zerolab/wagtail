@@ -87,11 +87,13 @@ class TestPageEdit(TestCase, WagtailTestUtils):
         self.assertContains(response, 'Add speakers')
 
         # test register_page_action_menu_item hook
-        self.assertContains(response, '<input type="submit" name="action-panic" value="Panic!" class="button" />')
+        self.assertContains(response,
+                            '<button type="submit" name="action-panic" value="Panic!" class="button">Panic!</button>')
         self.assertContains(response, 'testapp/js/siren.js')
 
         # test construct_page_action_menu hook
-        self.assertContains(response, '<input type="submit" name="action-relax" value="Relax." class="button" />')
+        self.assertContains(response,
+                            '<button type="submit" name="action-relax" value="Relax." class="button">Relax.</button>')
 
     def test_edit_draft_page_with_no_revisions(self):
         # Tests that the edit page loads
