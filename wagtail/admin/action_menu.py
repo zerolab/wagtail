@@ -145,7 +145,6 @@ class RestartWorkflowMenuItem(ActionMenuItem):
 class CancelWorkflowMenuItem(ActionMenuItem):
     label = _("Cancel workflow ")
     name = 'action-cancel-workflow'
-    classname = 'no'
 
     def is_shown(self, request, context):
         if context['view'] == 'edit':
@@ -157,7 +156,6 @@ class CancelWorkflowMenuItem(ActionMenuItem):
 class UnpublishMenuItem(ActionMenuItem):
     label = _("Unpublish")
     name = 'action-unpublish'
-    classname = 'no'
 
     def is_shown(self, request, context):
         return (
@@ -173,7 +171,7 @@ class UnpublishMenuItem(ActionMenuItem):
 class DeleteMenuItem(ActionMenuItem):
     name = 'action-delete'
     label = _("Delete")
-    classname = 'no'
+    icon_name = 'bin'
 
     def is_shown(self, request, context):
         return (
