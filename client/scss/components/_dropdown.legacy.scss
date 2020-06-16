@@ -270,6 +270,7 @@
 
 .dropdown-button {
     .button .icon {
-        @include svg-icon(1.5em);
+        @include svg-icon();
+        margin-right: 0.5em;
     }
 }
