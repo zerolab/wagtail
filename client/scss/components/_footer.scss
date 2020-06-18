@@ -16,8 +16,18 @@ footer {
     }
 
     .actions {
-        width: 250px;
+        width: 350px;
         margin-right: 1em;
+
+        .dropdown {
+            input[type=submit],
+            input[type=reset],
+            input[type=button],
+            button,
+            .button {
+                padding-right: 2.6em;
+            }
+        }
     }
 
     .preview .dropdown {
@@ -65,11 +75,11 @@ footer {
     }
 
     @include media-breakpoint-up(sm) {
-        margin-left: $desktop-nice-padding;
+        margin-left: calc(#{$desktop-nice-padding} - 0.75em);
         margin-right: $desktop-nice-padding;
         width: auto;
         position: fixed;
         bottom: 0;
-        padding: 1em;
+        padding: 0.75em;
     }
 }

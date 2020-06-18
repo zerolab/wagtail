@@ -58,12 +58,12 @@
             float: left;
             height: 1.5em;
             line-height: 2em;
-            margin: 1em 0 1.5em;
+            margin: 1em 0.75em 1.5em 0;
 
             .icon {
                 @include svg-icon(1.25em, text-bottom);
 
-                margin-right: 0.4em;
+                margin-right: 0.2em;
             }
 
             .icon-warning {
@@ -81,6 +81,7 @@
 
         .button {
             font-size: 1em;
+            font-weight: 600;
             margin-top: -0.25em; // Account for the button border
             overflow: initial;
             height: 2.5em;
@@ -91,7 +92,7 @@
             font-weight: 600;
 
             span {
-                font-weight: 500;
+                font-weight: 300;
             }
         }
 
@@ -407,8 +408,8 @@
 .full .halloeditor {
     @include nice-padding;
     border-radius: 0;
-    padding-top: 2em;
-    padding-bottom: 2em;
+    padding-top: 1.5em;
+    padding-bottom: 1.5em;
     font-size: 1.2em;
     line-height: 1.6em;
 }
@@ -421,6 +422,13 @@
 }
 
 // Footer control bar for perfoming actions on the page
+footer .actions {
+    .button {
+        font-weight: 600;
+        text-overflow: ellipsis;
+    }
+}
+
 footer .preview {
     button,
     .button {
