@@ -27,6 +27,9 @@
                                     {% include "wagtailadmin/pages/listing/_locked_indicator.html" with page=page %}
                                 </div>
                                 <ul class="actions">
+                                    {% if can_remove_locks %}
+                                    <li><button data-locking-action="{% url 'wagtailadmin_pages:unlock' page.id %}" class="button button-small button-secondary">{% trans "Unlock" %}</button></li>
+                                    {% endif %}
                                     <li><a href="{% url 'wagtailadmin_pages:edit' page.id %}" class="button button-small button-secondary">{% trans "Edit" %}</a></li>
                                     {% if page.has_unpublished_changes and page.is_previewable %}
                                         <li><a href="{% url 'wagtailadmin_pages:view_draft' page.id %}" class="button button-small button-secondary" target="_blank" rel="noopener noreferrer">{% trans 'Draft' %}</a></li>
@@ -47,4 +50,8 @@
             </table>
         </section>
     </div>
+    <script src="{% versioned_static 'wagtailadmin/js/lock-unlock-action.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', LockUnlockAction('{{ csrf_token|escapejs }}', '{% url 'wagtailadmin_home' %}'));
+    </script>
 {% endif %}

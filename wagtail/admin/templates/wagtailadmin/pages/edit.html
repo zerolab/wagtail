@@ -123,36 +123,6 @@
             );
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('[data-locking-action]').forEach(function (buttonElement) {
-                buttonElement.addEventListener('click', function (e) {
-                    // Stop the button from submitting the form
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    var formElement = document.createElement('form');
-
-                    formElement.action = buttonElement.dataset.lockingAction;
-                    formElement.method = 'POST';
-
-                    var csrftokenElement = document.createElement('input');
-                    csrftokenElement.type = 'hidden';
-                    csrftokenElement.name = 'csrfmiddlewaretoken';
-                    csrftokenElement.value = '{{ csrf_token|escapejs }}';
-                    formElement.appendChild(csrftokenElement);
-
-                    var nextElement = document.createElement('input');
-                    nextElement.type = 'hidden';
-                    nextElement.name = 'next';
-                    nextElement.value = '{% url 'wagtailadmin_pages:edit' page.id %}';
-                    formElement.appendChild(nextElement);
-
-                    document.body.appendChild(formElement);
-                    formElement.submit();
-                }, {capture: true});
-            })
-        });
-
         /* Tooltips used by the workflow status component */
         $(function() {
             $('[data-wagtail-tooltip]').tooltip({
@@ -167,6 +137,7 @@
 
         $(function() {
             document.addEventListener('DOMContentLoaded', ActivateWorkflowActions('{{ csrf_token|escapejs }}'));
+            document.addEventListener('DOMContentLoaded', LockUnlockAction('{{ csrf_token|escapejs }}', '{% url 'wagtailadmin_pages:edit' page.id %}'));
         })
     </script>
 {% endblock %}
