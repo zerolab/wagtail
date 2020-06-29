@@ -681,11 +681,6 @@ def register_site_history_report_menu_item():
     return SiteHistoryReportMenuItem(_('Site history'), reverse('wagtailadmin_reports:site_history'), icon_name='history', order=1000)
 
 
-@hooks.register('register_reports_menu_item')
-def register_site_history_report_menu_item():
-    return SiteHistoryReportMenuItem(_('Site history'), reverse('wagtailadmin_reports:site_history'), icon_name='history', order=1000)
-
-
 @hooks.register('register_admin_menu_item')
 def register_reports_menu():
     return ReportsMenuItem(
