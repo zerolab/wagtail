@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.urls import path
 
 from wagtail.admin.views import page_privacy, pages
 
@@ -25,6 +26,10 @@ urlpatterns = [
 
     url(r'^(\d+)/copy/$', pages.copy, name='copy'),
 
+    url(r'^workflow/action/(\d+)/(\w+)/(\d+)/$', pages.workflow_action, name='workflow_action'),
+    url(r'^workflow/preview/(\d+)/(\d+)/$', pages.preview_revision_for_task, name='workflow_preview'),
+    path('workflow/status/<int:page_id>/', pages.workflow_status, name='workflow_status'),
+
     url(r'^moderation/(\d+)/approve/$', pages.approve_moderation, name='approve_moderation'),
     url(r'^moderation/(\d+)/reject/$', pages.reject_moderation, name='reject_moderation'),
     url(r'^moderation/(\d+)/preview/$', pages.preview_for_moderation, name='preview_for_moderation'),
@@ -39,4 +44,9 @@ urlpatterns = [
     url(r'^(\d+)/revisions/(\d+)/revert/$', pages.revisions_revert, name='revisions_revert'),
     url(r'^(\d+)/revisions/(\d+)/unschedule/$', pages.revisions_unschedule, name='revisions_unschedule'),
     url(r'^(\d+)/revisions/compare/(live|earliest|\d+)\.\.\.(live|latest|\d+)/$', pages.revisions_compare, name='revisions_compare'),
+
+    path('<int:page_id>/history/', pages.PageHistoryView.as_view(), name='history'),
+
+    url(r'^(\d+)/workflow_history/$', pages.workflow_history, name='workflow_history'),
+    url(r'^(\d+)/workflow_history/detail/(\d+)/$', pages.workflow_history_detail, name='workflow_history_detail'),
 ]
