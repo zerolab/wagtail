@@ -38,7 +38,7 @@ class Index(IndexView):
     edit_url_name = 'wagtailadmin_workflows:edit'
     page_title = _("Workflows")
     add_item_label = _("Add a workflow")
-    header_icon = 'clipboard-list'
+    header_icon = 'tasks'
 
     def show_disabled(self):
         return self.request.GET.get('show_disabled', 'false') == 'true'
@@ -58,13 +58,13 @@ class Index(IndexView):
 class Create(CreateView):
     permission_policy = workflow_permission_policy
     model = Workflow
-    page_title = _("Create a new workflow")
+    page_title = _("New workflow")
     template_name = 'wagtailadmin/workflows/create.html'
     success_message = _("Workflow '{0}' created.")
     add_url_name = 'wagtailadmin_workflows:add'
     edit_url_name = 'wagtailadmin_workflows:edit'
     index_url_name = 'wagtailadmin_workflows:index'
-    header_icon = 'clipboard-list'
+    header_icon = 'tasks'
     edit_handler = None
 
     def get_edit_handler(self):
@@ -118,7 +118,7 @@ class Create(CreateView):
 class Edit(EditView):
     permission_policy = workflow_permission_policy
     model = Workflow
-    page_title = _("Edit workflow")
+    page_title = _("Editing workflow")
     template_name = 'wagtailadmin/workflows/edit.html'
     success_message = _("Workflow '{0}' updated.")
     add_url_name = 'wagtailadmin_workflows:add'
@@ -128,7 +128,7 @@ class Edit(EditView):
     index_url_name = 'wagtailadmin_workflows:index'
     enable_item_label = _('Enable')
     enable_url_name = 'wagtailadmin_workflows:enable'
-    header_icon = 'clipboard-list'
+    header_icon = 'tasks'
     edit_handler = None
     MAX_PAGES = 5
 
@@ -212,7 +212,7 @@ class Disable(DeleteView):
     edit_url_name = 'wagtailadmin_workflows:edit'
     delete_url_name = 'wagtailadmin_workflows:disable'
     index_url_name = 'wagtailadmin_workflows:index'
-    header_icon = 'clipboard-list'
+    header_icon = 'tasks'
 
     @property
     def get_edit_url(self):
@@ -308,8 +308,8 @@ class TaskIndex(IndexView):
     add_url_name = 'wagtailadmin_workflows:select_task_type'
     edit_url_name = 'wagtailadmin_workflows:edit_task'
     page_title = _("Workflow tasks")
-    add_item_label = _("Create a workflow task")
-    header_icon = 'clipboard-list'
+    add_item_label = _("New workflow task")
+    header_icon = 'thumbtack'
 
     def show_disabled(self):
         return self.request.GET.get('show_disabled', 'false') == 'true'
@@ -345,7 +345,7 @@ def select_task_type(request):
 
     return render(request, 'wagtailadmin/workflows/select_task_type.html', {
         'task_types': task_types,
-        'icon': 'clipboard-list',
+        'icon': 'thumbtack',
         'title': _("Workflows"),
     })
 
@@ -353,13 +353,13 @@ def select_task_type(request):
 class CreateTask(CreateView):
     permission_policy = task_permission_policy
     model = None
-    page_title = _("Create a workflow task")
+    page_title = _("New workflow task")
     template_name = 'wagtailadmin/workflows/create_task.html'
     success_message = _("Task '{0}' created.")
     add_url_name = 'wagtailadmin_workflows:add_task'
     edit_url_name = 'wagtailadmin_workflows:edit_task'
     index_url_name = 'wagtailadmin_workflows:task_index'
-    header_icon = 'clipboard-list'
+    header_icon = 'thumbtack'
 
     @cached_property
     def model(self):
@@ -387,7 +387,7 @@ class CreateTask(CreateView):
 class EditTask(EditView):
     permission_policy = task_permission_policy
     model = None
-    page_title = _("Edit workflow task")
+    page_title = _("Editing workflow task")
     template_name = 'wagtailadmin/workflows/edit_task.html'
     success_message = _("Task '{0}' updated.")
     add_url_name = 'wagtailadmin_workflows:select_task_type'
@@ -397,11 +397,15 @@ class EditTask(EditView):
     delete_item_label = _('Disable')
     enable_item_label = _('Enable')
     enable_url_name = 'wagtailadmin_workflows:enable_task'
-    header_icon = 'clipboard-list'
+    header_icon = 'thumbtack'
 
     @cached_property
     def model(self):
         return type(self.get_object())
+
+    @cached_property
+    def page_title(self):
+        return _("Editing {task_type}".format(task_type=self.get_object().content_type.name))
 
     def get_queryset(self):
         if self.queryset is None:
@@ -436,7 +440,7 @@ class DisableTask(DeleteView):
     edit_url_name = 'wagtailadmin_workflows:edit_task'
     delete_url_name = 'wagtailadmin_workflows:disable_task'
     index_url_name = 'wagtailadmin_workflows:task_index'
-    header_icon = 'clipboard-list'
+    header_icon = 'thumbtack'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

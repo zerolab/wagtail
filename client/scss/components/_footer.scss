@@ -19,6 +19,10 @@ footer {
         width: 350px;
         margin-right: 1em;
 
+        &:only-of-type {
+            margin-right: 0;
+        }
+
         .dropdown {
             input[type=submit],
             input[type=reset],
