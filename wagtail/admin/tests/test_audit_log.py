@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
-from wagtail.admin import LogActionRegistry
+from wagtail.admin.log_action_registry import LogActionRegistry
 from wagtail.core.models import GroupPagePermission, LogEntry, Page, PageViewRestriction
 from wagtail.tests.testapp.models import SimplePage
 from wagtail.tests.utils import WagtailTestUtils, get_user_model

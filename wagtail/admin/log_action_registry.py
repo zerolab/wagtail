@@ -55,3 +55,6 @@ class LogActionRegistry:
 
     def get_action_label(self, action):
         return self.get_actions()[action][0]
+
+
+registry = LogActionRegistry()
