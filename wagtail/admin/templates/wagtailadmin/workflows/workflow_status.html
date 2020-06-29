@@ -1,7 +1,6 @@
 {% load wagtailadmin_tags i18n %}
 
-{# TODO: set icon="workflow_icon_name" #}
-{% include "wagtailadmin/shared/header.html" with title=workflow_state.workflow.name %}
+{% include "wagtailadmin/shared/header.html" with title=workflow_state.workflow.name icon="tasks" %}
 
 <div class="nice-padding">
     {% if page.get_latest_revision %}
