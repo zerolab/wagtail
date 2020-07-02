@@ -2994,6 +2994,11 @@ class Task(models.Model):
         """Returns a ``QuerySet`` of the task states the current user can moderate"""
         return TaskState.objects.none()
 
+    @classmethod
+    def get_description(cls):
+        """Returns the task description."""
+        return ''
+
     @property
     def get_workflows(self):
         """Returns a ``QuerySet`` of the workflows that this task is part of """
@@ -3136,6 +3141,10 @@ class GroupApprovalTask(Task):
             return TaskState.objects.filter(status=TaskState.STATUS_IN_PROGRESS, task=self.task_ptr)
         else:
             return TaskState.objects.none()
+
+    @classmethod
+    def get_description(cls):
+        return _("Choose which Wagtail Groups can approve this task")
 
     class Meta:
         verbose_name = _('Group approval task')
