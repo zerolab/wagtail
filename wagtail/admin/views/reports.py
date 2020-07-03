@@ -399,5 +399,5 @@ class LogEntriesView(ReportView):
         return LogEntry.objects.get_pages().filter(q).order_by('-timestamp')
 
     def get_action_label(self, action):
-        from wagtail.admin import log_action_registry
+        from wagtail.admin.log_action_registry import registry as log_action_registry
         return force_str(log_action_registry.get_action_label(action))

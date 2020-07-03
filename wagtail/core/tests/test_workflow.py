@@ -281,3 +281,18 @@ class TestWorkflows(TestCase):
             tasks[1].task_state,
             TaskState.objects.filter(workflow_state=workflow_state).order_by('-started_at', '-id')[0]
         )
+
+    def test_task_workflows(self):
+        workflow = Workflow.objects.create(name='test_workflow')
+        disabled_workflow = Workflow.objects.create(name="disabled_workflow", active=False)
+        task = Task.objects.create(name='test_task')
+
+        WorkflowTask.objects.create(workflow=workflow, task=task, sort_order=1)
+        WorkflowTask.objects.create(workflow=disabled_workflow, task=task, sort_order=1)
+
+        self.assertEqual(
+            list(task.workflows), [workflow, disabled_workflow]
+        )
+        self.assertEqual(
+            list(task.active_workflows), [workflow]
+        )

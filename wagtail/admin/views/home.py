@@ -58,7 +58,10 @@ class UserPagesInWorkflowModerationPanel:
         self.workflow_states = (
             WorkflowState.objects.active()
             .filter(Q(page__owner=request.user) | Q(requested_by=request.user))
-            .select_related('page', 'current_task_state', 'current_task_state__task', 'current_task_state__page_revision')
+            .select_related(
+                'page', 'current_task_state', 'current_task_state__task', 'current_task_state__page_revision'
+            )
+            .order_by('-current_task_state__started_at')
         )
 
     def render(self):
@@ -73,7 +76,11 @@ class WorkflowPagesToModeratePanel:
 
     def __init__(self, request):
         self.request = request
-        states = TaskState.objects.reviewable_by(request.user).select_related('page_revision', 'task', 'page_revision__page')
+        states = (
+             TaskState.objects.reviewable_by(request.user)
+             .select_related('page_revision', 'task', 'page_revision__page')
+             .order_by('-started_at')
+        )
         self.states = [
             (state, state.task.specific.get_actions(page=state.page_revision.page, user=request.user), state.workflow_state.all_tasks_with_status())
             for state in states

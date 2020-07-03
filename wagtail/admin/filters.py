@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_filters.widgets import SuffixedMultiWidget
 
-from wagtail.admin import log_action_registry
+from wagtail.admin.log_action_registry import registry as log_action_registry
 from wagtail.admin.widgets import AdminDateInput, BooleanButtonSelect, ButtonSelect, FilteredSelect
 from wagtail.core.models import LogEntry, Page, Task, TaskState, Workflow, WorkflowState
 
@@ -152,7 +152,7 @@ class WorkflowTasksReportFilterSet(WagtailFilterSet):
     # When a workflow is chosen in the 'id_workflow' selector, filter this list of tasks
     # to just the ones whose get_workflows() includes the selected workflow.
     task = FilteredModelChoiceFilter(
-        queryset=Task.objects.all(), filter_field='id_workflow', filter_accessor='get_workflows'
+        queryset=Task.objects.all(), filter_field='id_workflow', filter_accessor='workflows'
     )
 
     reviewable = django_filters.ChoiceFilter(

@@ -19,8 +19,8 @@ from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.utils.translation import gettext_lazy as _
 
-from wagtail.admin import log_action_registry
 from wagtail.admin.localization import get_js_translation_strings
+from wagtail.admin.log_action_registry import registry as log_action_registry
 from wagtail.admin.menu import admin_menu
 from wagtail.admin.navigation import get_explorable_root_page
 from wagtail.admin.search import admin_search_areas

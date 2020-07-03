@@ -2902,6 +2902,11 @@ class Task(models.Model):
         """Returns all ``Workflow`` instances that use this task"""
         return Workflow.objects.filter(workflow_tasks__task=self)
 
+    @property
+    def active_workflows(self):
+        """Return a ``QuerySet``` of active workflows that this task is part of"""
+        return Workflow.objects.active().filter(workflow_tasks__task=self)
+
     @classmethod
     def get_verbose_name(cls):
         """
@@ -2994,10 +2999,10 @@ class Task(models.Model):
         """Returns a ``QuerySet`` of the task states the current user can moderate"""
         return TaskState.objects.none()
 
-    @property
-    def get_workflows(self):
-        """Returns a ``QuerySet`` of the workflows that this task is part of """
-        return Workflow.objects.filter(workflow_tasks__task=self)
+    @classmethod
+    def get_description(cls):
+        """Returns the task description."""
+        return ''
 
     @transaction.atomic
     def deactivate(self, user=None):
@@ -3136,6 +3141,10 @@ class GroupApprovalTask(Task):
             return TaskState.objects.filter(status=TaskState.STATUS_IN_PROGRESS, task=self.task_ptr)
         else:
             return TaskState.objects.none()
+
+    @classmethod
+    def get_description(cls):
+        return _("Choose which Wagtail Groups can approve this task")
 
     class Meta:
         verbose_name = _('Group approval task')
