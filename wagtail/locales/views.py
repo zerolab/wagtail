@@ -1,3 +1,7 @@
+from typing import TYPE_CHECKING, Any, Optional
+
+from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy
 
 from wagtail.admin import messages
@@ -9,6 +13,9 @@ from wagtail.permissions import locale_permission_policy
 
 from .forms import LocaleForm
 from .utils import get_locale_usage
+
+if TYPE_CHECKING:
+    from django.http import HttpRequest, HttpResponseBase
 
 
 class LanguageTitleColumn(TitleColumn):
@@ -45,10 +52,29 @@ class IndexView(generic.IndexView):
         UsageColumn("usage", label=gettext_lazy("Usage")),
     ]
 
+    def get_add_url(self) -> Optional[str]:
+        # Removes the "Add" button from the index view.
+        if self.queryset.count() >= len(
+            getattr(settings, "WAGTAIL_CONTENT_LANGUAGES", [])
+        ):
+            return None
+        return super().get_add_url()
+
 
 class CreateView(generic.CreateView):
     page_title = gettext_lazy("Add locale")
     success_message = gettext_lazy("Locale '%(object)s' created.")
+
+    def dispatch(
+        self, request: "HttpRequest", *args: Any, **kwargs: Any
+    ) -> "HttpResponseBase":
+        # Only allow access to the add view if there are locales to be added.
+        if Locale.objects.count() >= len(
+            getattr(settings, "WAGTAIL_CONTENT_LANGUAGES", [])
+        ):
+            raise PermissionDenied
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 class EditView(generic.EditView):

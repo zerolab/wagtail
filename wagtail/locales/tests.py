@@ -13,8 +13,13 @@ from wagtail.test.utils.template_tests import AdminTemplateTestUtils
 
 
 class TestLocaleIndexView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = cls.create_test_user()
+        cls.add_url = reverse("wagtaillocales:add")
+
     def setUp(self):
-        self.login()
+        self.login(user=self.user)
 
     def get(self, params={}):
         return self.client.get(reverse("wagtaillocales:index"), params)
@@ -27,6 +32,12 @@ class TestLocaleIndexView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
             [{"url": "", "label": "Locales"}],
             response.content,
         )
+        self.assertContains(response, self.add_url)
+
+    @override_settings(WAGTAIL_CONTENT_LANGUAGES=[("en", "English")])
+    def test_index_view_doesnt_show_add_locale_button_if_all_locales_created(self):
+        response = self.get()
+        self.assertNotContains(response, self.add_url)
 
 
 class TestLocaleCreateView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
@@ -102,6 +113,18 @@ class TestLocaleCreateView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
             response.context["form"],
             "language_code",
             ["Select a valid choice. ja is not one of the available choices."],
+        )
+
+    @override_settings(WAGTAIL_CONTENT_LANGUAGES=[("en", "English")])
+    def test_create_view_no_access_if_all_locales_created(self):
+        response = self.get()
+        self.assertEqual(response.status_code, 302)
+        full_context = {
+            key: value for context in response.context for key, value in context.items()
+        }
+        self.assertEqual(
+            full_context["message"],
+            "Sorry, you do not have permission to access this area.",
         )
 
 
