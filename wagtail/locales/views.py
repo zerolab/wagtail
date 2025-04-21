@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext_lazy
 
 from wagtail.admin import messages
 from wagtail.admin.ui.tables import Column, TitleColumn
@@ -25,14 +25,18 @@ class LanguageTitleColumn(TitleColumn):
         return locale
 
 
-class UsageColumn(Column):
+class LocaleUsageColumn(Column):
     def get_value(self, locale):
         num_pages, num_others = get_locale_usage(locale)
-        # TODO: make this translatable
-        val = "%d pages" % num_pages
         if num_others:
-            val += " + %d others" % num_others
-        return val
+            return gettext_lazy("%(num_pages)d pages and %(num_others)d others") % {
+                "num_pages": num_pages,
+                "num_others": num_others,
+            }
+
+        return ngettext_lazy("%(num_pages)d page", "%(num_pages)d pages", num_pages) % {
+            "num_pages": num_pages
+        }
 
 
 class IndexView(generic.IndexView):
@@ -49,7 +53,7 @@ class IndexView(generic.IndexView):
             sort_key="language_code",
             url_name="wagtaillocales:edit",
         ),
-        UsageColumn("usage", label=gettext_lazy("Usage")),
+        LocaleUsageColumn("usage", label=gettext_lazy("Usage")),
     ]
 
     def get_add_url(self) -> Optional[str]:
