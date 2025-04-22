@@ -25,6 +25,17 @@ class LanguageTitleColumn(TitleColumn):
         return locale
 
 
+def _can_add_locale() -> bool:
+    defined_locales = [
+        language[0]
+        # WAGTAIL_CONTENT_LANGUAGES is a tuple (language_code, language)
+        for language in getattr(settings, "WAGTAIL_CONTENT_LANGUAGES", [])
+    ]
+    return Locale.objects.filter(language_code__in=defined_locales) < len(
+        defined_locales
+    )
+
+
 class LocaleUsageColumn(Column):
     def get_value(self, locale):
         num_pages, num_others = get_locale_usage(locale)
@@ -58,9 +69,7 @@ class IndexView(generic.IndexView):
 
     def get_add_url(self) -> Optional[str]:
         # Removes the "Add" button from the index view.
-        if self.queryset.count() >= len(
-            getattr(settings, "WAGTAIL_CONTENT_LANGUAGES", [])
-        ):
+        if not _can_add_locale():
             return None
         return super().get_add_url()
 
@@ -73,9 +82,7 @@ class CreateView(generic.CreateView):
         self, request: "HttpRequest", *args: Any, **kwargs: Any
     ) -> "HttpResponseBase":
         # Only allow access to the add view if there are locales to be added.
-        if Locale.objects.count() >= len(
-            getattr(settings, "WAGTAIL_CONTENT_LANGUAGES", [])
-        ):
+        if not _can_add_locale():
             raise PermissionDenied
 
         return super().dispatch(request, *args, **kwargs)

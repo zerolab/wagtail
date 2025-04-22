@@ -36,8 +36,12 @@ class TestLocaleIndexView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
 
     @override_settings(WAGTAIL_CONTENT_LANGUAGES=[("en", "English")])
     def test_index_view_doesnt_show_add_locale_button_if_all_locales_created(self):
-        response = self.get()
-        self.assertNotContains(response, self.add_url)
+        self.assertNotContains(self.get(), self.add_url)
+
+    @override_settings(WAGTAIL_CONTENT_LANGUAGES=[("en", "English"), ("fr", "French")])
+    def test_index_view_shows_add_locale_button_with_stale_locales(self):
+        Locale.objects.create(language_code="de")
+        self.assertContains(self.get(), self.add_url)
 
 
 class TestLocaleCreateView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
@@ -126,6 +130,13 @@ class TestLocaleCreateView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
             full_context["message"],
             "Sorry, you do not have permission to access this area.",
         )
+
+    @override_settings(WAGTAIL_CONTENT_LANGUAGES=[("en", "English"), ("fr", "French")])
+    def test_create_view_can_access_with_stale_locales(self):
+        Locale.objects.create(language_code="de")
+        response = self.get()
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "wagtaillocales/create.html")
 
 
 class TestLocaleEditView(AdminTemplateTestUtils, WagtailTestUtils, TestCase):
